@@ -69,10 +69,15 @@ This implementation plan breaks down the Rust 2024 MCP GenMedia workspace into d
     - Define variants: Config, Gcs, Auth, Api, Validation, Io, Ffmpeg, Timeout
     - Implement From traits for error conversion
     - Implement Display with context for API and GCS errors
-    - _Requirements: 10.1, 10.2, 10.4, 10.5, 10.6, 10.7_
+    - _Requirements: 10.1, 10.2, 10.5, 10.6, 10.7_
   - [ ] 6.2 Write property test for error context
     - **Property 16: Error Context Inclusion**
-    - **Validates: Requirements 10.4, 10.5**
+    - **Validates: Requirements 10.5, 10.6**
+  - [ ] 6.3 Initialize tracing with env_logger
+    - Set up tracing-subscriber with env_filter
+    - Support RUST_LOG environment variable
+    - Configure log format with timestamps and context
+    - _Requirements: 10.3, 10.4, 10.10_
 
 - [ ] 7. Checkpoint - Verify adk-rust-mcp-common builds and tests pass
   - Ensure all tests pass, ask the user if questions arise.

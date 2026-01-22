@@ -1143,6 +1143,9 @@ impl ImageHandler {
     
     /// List available models resource (aggregated from all providers)
     pub async fn list_models(&self) -> Result<ResourceContent, Error>;
+    
+    /// List segmentation classes resource (Google provider specific)
+    pub async fn list_segmentation_classes(&self) -> Result<ResourceContent, Error>;
 }
 ```
 ```

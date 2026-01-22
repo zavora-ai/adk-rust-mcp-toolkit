@@ -109,12 +109,12 @@ To avoid trademark conflicts with Google product names, the crates use generic d
 5. THE `image_generate` tool SHALL accept an optional `aspect_ratio` parameter (1:1, 3:4, 4:3, 9:16, 16:9)
 6. THE `image_generate` tool SHALL accept an optional `number_of_images` parameter (1-4, default 1)
 7. THE `image_generate` tool SHALL accept an optional `output_file` parameter for local file output
-8. THE `image_generate` tool SHALL accept an optional `output_gcs_uri` parameter for GCS output
-9. WHEN neither output_file nor output_gcs_uri is specified, THE `image_generate` tool SHALL return base64-encoded image data
+8. THE `image_generate` tool SHALL accept an optional `output_uri` parameter for cloud storage output (supports gs://, s3://, or other storage URIs)
+9. WHEN neither output_file nor output_uri is specified, THE `image_generate` tool SHALL return base64-encoded image data
 10. WHEN output_file is specified, THE `image_generate` tool SHALL save the image to the local path and return the file path
-11. WHEN output_gcs_uri is specified, THE `image_generate` tool SHALL upload to GCS and return the GCS URI
+11. WHEN output_uri is specified, THE `image_generate` tool SHALL upload to the storage backend and return the URI
 12. THE Image_Server SHALL expose a resource `image://models` listing available image generation models
-13. THE Image_Server SHALL expose a resource `image://segmentation_classes` listing segmentation class options
+13. THE Image_Server SHALL expose a resource `image://segmentation_classes` listing segmentation class options (Google provider specific)
 14. WHEN calling Vertex AI Imagen API, THE Image_Server SHALL use ADC for authentication
 15. IF the Imagen API returns an error, THEN THE Image_Server SHALL propagate a descriptive error message
 
@@ -217,7 +217,7 @@ To avoid trademark conflicts with Google product names, the crates use generic d
 9. WHEN an input file is a GCS URI, THE AVTool_Server SHALL download it to a temporary location before processing
 10. WHEN an output file is a GCS URI, THE AVTool_Server SHALL upload the result after processing
 11. THE `ffmpeg_get_media_info` tool SHALL return JSON with duration, codecs, resolution, and stream information
-12. THE `ffmpeg_convert_audio_wav_to_mp3` tool SHALL accept bitrate and quality parameters
+12. THE `ffmpeg_convert_audio_wav_to_mp3` tool SHALL accept bitrate parameter for output quality control
 13. THE `ffmpeg_video_to_gif` tool SHALL accept fps, width, and duration parameters
 14. THE `ffmpeg_combine_audio_and_video` tool SHALL accept audio and video input paths and output path
 15. THE `ffmpeg_overlay_image_on_video` tool SHALL accept position, scale, and duration parameters
@@ -235,12 +235,14 @@ To avoid trademark conflicts with Google product names, the crates use generic d
 
 1. THE Error_Module SHALL define custom error types using thiserror
 2. THE Error_Module SHALL categorize errors: ConfigError, ApiError, GcsError, ValidationError, IoError
-3. WHEN an error occurs, THE MCP_Server SHALL log the error with context using tracing
-4. WHEN an API call fails, THE Error_Module SHALL include the API endpoint and response details
-5. WHEN a GCS operation fails, THE Error_Module SHALL include the GCS URI and operation type
-6. IF a required environment variable is missing, THEN THE Error_Module SHALL return ConfigError with the variable name
-7. THE MCP_Server SHALL use anyhow for error propagation with context
-8. WHEN returning MCP error responses, THE MCP_Server SHALL include user-friendly error messages
+3. WHEN an error occurs, THE MCP_Server SHALL log the error with context using the tracing crate
+4. THE MCP_Server SHALL initialize tracing with env_logger filter support at startup
+5. WHEN an API call fails, THE Error_Module SHALL include the API endpoint and response details
+6. WHEN a GCS operation fails, THE Error_Module SHALL include the GCS URI and operation type
+7. IF a required environment variable is missing, THEN THE Error_Module SHALL return ConfigError with the variable name
+8. THE MCP_Server SHALL use anyhow for error propagation with context
+9. WHEN returning MCP error responses, THE MCP_Server SHALL include user-friendly error messages
+10. THE MCP_Server SHALL support RUST_LOG environment variable for log level configuration
 
 ### Requirement 11: Authentication and Security
 
