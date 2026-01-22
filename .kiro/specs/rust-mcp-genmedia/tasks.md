@@ -106,12 +106,13 @@ This implementation plan breaks down the Rust 2024 MCP GenMedia workspace into d
   - [ ] 9.3 Implement image_generate tool
     - Build Vertex AI Imagen API request
     - Handle response parsing and base64 image extraction
-    - Implement output handling (base64 return, local file, GCS upload)
+    - Implement output handling (base64 return, local file, storage backend upload via output_uri)
     - _Requirements: 4.1, 4.9, 4.10, 4.11, 4.14, 4.15_
   - [ ] 9.4 Implement image resources
     - Create image://models resource listing available models
-    - Create image://segmentation_classes resource
-    - _Requirements: 4.12, 4.13_
+    - Create image://segmentation_classes resource (Google provider specific)
+    - Create image://providers resource listing available providers
+    - _Requirements: 4.12, 4.13, 13.6_
   - [ ] 9.5 Wire up adk-rust-mcp-image main.rs
     - Register image_generate tool with rmcp
     - Register resources with rmcp
@@ -364,16 +365,20 @@ This implementation plan breaks down the Rust 2024 MCP GenMedia workspace into d
   - [ ] 24.1 Update ImageHandler to use ProviderRegistry
     - Accept provider parameter in tool calls
     - Use trait objects for provider calls
-    - _Requirements: 13.2, 13.3_
+    - Register image://providers resource
+    - _Requirements: 13.2, 13.3, 13.6_
   - [ ] 24.2 Update VideoHandler to use ProviderRegistry
     - Accept provider parameter in tool calls
-    - _Requirements: 13.2, 13.3_
+    - Register video://providers resource
+    - _Requirements: 13.2, 13.3, 13.6_
   - [ ] 24.3 Update SpeechHandler to use ProviderRegistry
     - Accept provider parameter in tool calls
-    - _Requirements: 13.2, 13.3_
+    - Register speech://providers resource
+    - _Requirements: 13.2, 13.3, 13.6_
   - [ ] 24.4 Update MusicHandler to use ProviderRegistry
     - Accept provider parameter in tool calls
-    - _Requirements: 13.2, 13.3_
+    - Register music://providers resource
+    - _Requirements: 13.2, 13.3, 13.6_
   - [ ] 24.5 Update AVToolHandler to use StorageBackend trait
     - Replace direct GcsClient usage with StorageBackend
     - _Requirements: 14.5, 14.6, 14.7_

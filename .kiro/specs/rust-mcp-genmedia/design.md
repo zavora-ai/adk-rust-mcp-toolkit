@@ -1193,6 +1193,8 @@ pub struct VideoFromImageParams {
     pub output_gcs_uri: String,
     #[serde(default)]
     pub download_local: bool,
+    #[serde(default)]
+    pub generate_audio: Option<bool>,
 }
 
 /// Long-running operation response
@@ -1716,7 +1718,7 @@ pub enum Error {
 
 ### Property 12: Pronunciation Alphabet Validation
 
-*For any* pronunciation entry in chirp_tts, the alphabet field SHALL be either "ipa" or "x-sampa". Other values SHALL be rejected with a validation error.
+*For any* pronunciation entry in speech_synthesize, the alphabet field SHALL be either "ipa" or "x-sampa". Other values SHALL be rejected with a validation error.
 
 **Validates: Requirements 7.9**
 
