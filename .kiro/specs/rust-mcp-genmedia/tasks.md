@@ -130,7 +130,7 @@ This implementation plan breaks down the Rust 2024 MCP GenMedia workspace into d
     - **Property 8: Numeric Parameter Range Validation** (duration_seconds)
     - **Property 9: Default Parameter Application**
     - **Validates: Requirements 5.4, 5.6**
-  - [ ] 11.3 Implement video_t2v and video_i2v tools
+  - [ ] 11.3 Implement video_generate and video_from_image tools
     - Build Vertex AI Veo API request
     - Implement LRO polling with exponential backoff
     - Handle GCS output and optional local download
@@ -139,7 +139,7 @@ This implementation plan breaks down the Rust 2024 MCP GenMedia workspace into d
     - **Property 11: Long-Running Operation Polling**
     - **Validates: Requirements 5.16**
   - [ ] 11.5 Wire up adk-rust-mcp-video main.rs
-    - Register video_t2v and video_i2v tools
+    - Register video_generate and video_from_image tools
     - Set up server with transport selection
     - _Requirements: 3.7, 3.9, 3.11, 3.12_
   - [ ] 11.6 Write unit tests for video handler
@@ -181,17 +181,17 @@ This implementation plan breaks down the Rust 2024 MCP GenMedia workspace into d
     - **Property 8: Numeric Parameter Range Validation** (speaking_rate, pitch)
     - **Property 12: Pronunciation Alphabet Validation**
     - **Validates: Requirements 7.6, 7.7, 7.9**
-  - [ ] 14.3 Implement speech_tts tool
+  - [ ] 14.3 Implement speech_synthesize tool
     - Build Cloud TTS API request with Chirp3-HD voice
     - Handle pronunciation SSML generation for IPA/X-SAMPA
     - Handle WAV output (base64, local file)
     - _Requirements: 7.1, 7.9, 7.11, 7.12, 7.14_
-  - [ ] 14.4 Implement list_voices tool
+  - [ ] 14.4 Implement speech_list_voices tool
     - Query available Chirp3-HD voices
     - Return voice names with language support info
     - _Requirements: 7.2, 7.13_
   - [ ] 14.5 Wire up adk-rust-mcp-speech main.rs
-    - Register speech_tts and list_voices tools
+    - Register speech_synthesize and speech_list_voices tools
     - Set up server with transport selection
     - _Requirements: 3.7, 3.9, 3.11, 3.12_
   - [ ] 14.6 Write unit tests for speech handler
@@ -204,16 +204,16 @@ This implementation plan breaks down the Rust 2024 MCP GenMedia workspace into d
     - Define MultimodalImageParams and MultimodalTtsParams
     - Implement style/tone parameter handling
     - _Requirements: 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 8.10_
-  - [ ] 15.2 Implement multimodal_image_generation tool
+  - [ ] 15.2 Implement multimodal_image_generate tool
     - Build Gemini API request for image generation
     - Handle output (base64, local file)
     - _Requirements: 8.1, 8.11, 8.13_
-  - [ ] 15.3 Implement multimodal_audio_tts tool
+  - [ ] 15.3 Implement multimodal_speech_synthesize tool
     - Build Gemini API request for TTS
     - Handle style/tone control
     - Handle output (base64, local file)
     - _Requirements: 8.2, 8.11, 8.13_
-  - [ ] 15.4 Implement list_multimodal_voices tool and language_codes resource
+  - [ ] 15.4 Implement multimodal_list_voices tool and language_codes resource
     - Query available Gemini TTS voices
     - Create multimodal://language_codes resource
     - _Requirements: 8.3, 8.12_
