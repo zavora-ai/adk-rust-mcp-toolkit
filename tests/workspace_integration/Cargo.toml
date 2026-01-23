@@ -1,0 +1,23 @@
+[package]
+name = "workspace-integration-tests"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+# All server crates
+adk-rust-mcp-common.workspace = true
+adk-rust-mcp-image = { path = "../../adk-rust-mcp-image" }
+adk-rust-mcp-video = { path = "../../adk-rust-mcp-video" }
+adk-rust-mcp-music = { path = "../../adk-rust-mcp-music" }
+adk-rust-mcp-speech = { path = "../../adk-rust-mcp-speech" }
+adk-rust-mcp-multimodal = { path = "../../adk-rust-mcp-multimodal" }
+adk-rust-mcp-avtool = { path = "../../adk-rust-mcp-avtool" }
+
+# Testing dependencies
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rmcp.workspace = true
+proptest.workspace = true
+schemars.workspace = true

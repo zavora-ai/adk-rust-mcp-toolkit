@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Update API Documentation",
+  "description": "Automatically updates API documentation when handler.rs or resources.rs files are modified in any MCP server crate",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/handler.rs",
+      "**/resources.rs"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A server handler or resources file was modified. Please update the corresponding API documentation in docs/api/ to reflect any changes to:\n1. Tool parameters and their schemas\n2. Resource definitions and responses\n3. Error codes and messages\n\nReview the modified file and update the relevant documentation. Keep the documentation concise and accurate."
+  }
+}

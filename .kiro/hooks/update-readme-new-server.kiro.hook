@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Update README for New Server",
+  "description": "Automatically updates the main README when new server crates are added or Cargo.toml is modified",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "adk-rust-mcp-*/Cargo.toml"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new MCP server crate was added. Please:\n1. Update docs/README.md to include the new server in the overview table\n2. Create initial documentation in docs/servers/{server-name}.md\n3. Create initial API documentation in docs/api/{server-name}.md\n\nUse the existing image server documentation as a template."
+  }
+}

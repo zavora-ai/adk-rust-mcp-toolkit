@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Update Server Documentation",
+  "description": "Automatically updates server documentation when server.rs or main.rs files are modified",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/server.rs",
+      "**/main.rs"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A server implementation file was modified. Please review if the changes affect:\n1. Server capabilities or configuration\n2. Transport options\n3. CLI arguments\n\nIf relevant, update the corresponding documentation in docs/servers/ to reflect these changes."
+  }
+}

@@ -1,0 +1,40 @@
+[package]
+name = "adk-rust-mcp-avtool"
+description = "MCP server for audio/video processing using FFmpeg"
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+name = "adk_rust_mcp_avtool"
+path = "src/lib.rs"
+
+[[bin]]
+name = "adk-rust-mcp-avtool"
+path = "src/main.rs"
+
+[features]
+default = []
+otel = ["adk-rust-mcp-common/otel"]
+
+[dependencies]
+adk-rust-mcp-common.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+rmcp.workspace = true
+reqwest.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+schemars.workspace = true
+async-trait.workspace = true
+base64.workspace = true
+clap.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+dotenvy.workspace = true
