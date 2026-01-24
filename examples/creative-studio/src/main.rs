@@ -1,7 +1,7 @@
 //! Creative Studio Example
 //!
-//! A multi-agent system with specialized agents for different media types,
-//! coordinated by a director agent.
+//! A comprehensive media agent with access to all creative tools,
+//! acting as a creative director that can handle complex media projects.
 //!
 //! ## Usage
 //! ```bash
@@ -13,8 +13,8 @@
 //! - "Create a podcast intro with music and voice"
 //! - "Design a social media video with animated text"
 
-use adk_agent::{LlmAgentBuilder, SequentialAgentBuilder};
-use adk_core::{Agent, Content, ReadonlyContext, Toolset};
+use adk_agent::LlmAgentBuilder;
+use adk_core::{Content, ReadonlyContext, Toolset};
 use adk_model::GeminiModel;
 use adk_tool::McpToolset;
 use anyhow::Result;
@@ -44,42 +44,6 @@ impl ReadonlyContext for SimpleContext {
     }
 }
 
-async fn create_specialist_agent(
-    name: &str,
-    description: &str,
-    instruction: &str,
-    server_path: &str,
-    model: Arc<GeminiModel>,
-    ctx: Arc<dyn ReadonlyContext>,
-) -> Result<Option<(Arc<dyn Agent>, tokio_util::sync::CancellationToken)>> {
-    let path = std::path::Path::new(server_path);
-    if !path.exists() {
-        println!("  ⚠️  {} server not found, skipping", name);
-        return Ok(None);
-    }
-
-    let mut cmd = Command::new(server_path);
-    let client = ().serve(TokioChildProcess::new(&mut cmd)?).await?;
-    
-    let toolset = McpToolset::new(client).with_name(&format!("{}-tools", name));
-    let cancel_token = toolset.cancellation_token().await;
-    let tools = toolset.tools(ctx).await?;
-
-    let mut builder = LlmAgentBuilder::new(name)
-        .description(description)
-        .model(model)
-        .instruction(instruction);
-
-    for tool in tools {
-        builder = builder.tool(tool);
-    }
-
-    let agent = builder.build()?;
-    println!("  ✓ {} agent ready", name);
-    
-    Ok(Some((Arc::new(agent), cancel_token)))
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
@@ -91,104 +55,108 @@ async fn main() -> Result<()> {
 
     println!("🎨 Creative Studio");
     println!("===================");
-    println!("Initializing specialist agents...\n");
+    println!("Initializing creative tools...\n");
 
-    let ctx = Arc::new(SimpleContext) as Arc<dyn ReadonlyContext>;
-    let mut cancel_tokens = Vec::new();
-    let mut sub_agents: Vec<Arc<dyn Agent>> = Vec::new();
-
-    // Create specialist agents
-    let specialists = [
-        (
-            "visual_artist",
-            "Creates images and visual content",
-            "You are a visual artist specializing in image generation.\n\
-             Use image_generate for creating images and image_upscale for enhancing resolution.\n\
-             Focus on visual aesthetics, composition, and style.",
-            IMAGE_SERVER,
-        ),
-        (
-            "video_director",
-            "Creates and edits video content",
-            "You are a video director specializing in video generation.\n\
-             Use video_generate for text-to-video and video_from_image for animating stills.\n\
-             Consider pacing, motion, and visual storytelling.",
-            VIDEO_SERVER,
-        ),
-        (
-            "music_composer",
-            "Composes music and soundtracks",
-            "You are a music composer creating original compositions.\n\
-             Use music_generate to create music from descriptions.\n\
-             Consider mood, tempo, instrumentation, and genre.",
-            MUSIC_SERVER,
-        ),
-        (
-            "voice_artist",
-            "Creates voiceovers and narration",
-            "You are a voice artist creating speech and narration.\n\
-             Use speech_synthesize for text-to-speech and speech_list_voices to find voices.\n\
-             Consider tone, pacing, and emotional delivery.",
-            SPEECH_SERVER,
-        ),
-        (
-            "post_producer",
-            "Handles media processing and assembly",
-            "You are a post-production specialist.\n\
-             Use FFmpeg tools to combine, convert, and process media files.\n\
-             Handle format conversion, audio mixing, and video assembly.",
-            AVTOOL_SERVER,
-        ),
+    let servers = [
+        ("Image", IMAGE_SERVER),
+        ("Video", VIDEO_SERVER),
+        ("Music", MUSIC_SERVER),
+        ("Speech", SPEECH_SERVER),
+        ("AVTool", AVTOOL_SERVER),
     ];
 
-    for (name, desc, instruction, path) in specialists {
-        if let Some((agent, token)) = create_specialist_agent(
-            name, desc, instruction, path, model.clone(), ctx.clone()
-        ).await? {
-            sub_agents.push(agent);
-            cancel_tokens.push(token);
+    let mut all_tools = Vec::new();
+    let mut cancel_tokens = Vec::new();
+    let ctx = Arc::new(SimpleContext) as Arc<dyn ReadonlyContext>;
+
+    for (name, path) in &servers {
+        let server_path = std::path::Path::new(path);
+        if !server_path.exists() {
+            println!("  ⚠️  {} server not found, skipping", name);
+            continue;
+        }
+
+        print!("  Loading {} tools... ", name);
+        let cmd = Command::new(path);
+        match ().serve(TokioChildProcess::new(cmd)?).await {
+            Ok(client) => {
+                let toolset = McpToolset::new(client)
+                    .with_name(&format!("{}-tools", name.to_lowercase()));
+                cancel_tokens.push(toolset.cancellation_token().await);
+                
+                match toolset.tools(ctx.clone()).await {
+                    Ok(tools) => {
+                        println!("✓ ({} tools)", tools.len());
+                        all_tools.extend(tools);
+                    }
+                    Err(e) => println!("⚠️  failed: {}", e),
+                }
+            }
+            Err(e) => println!("⚠️  failed: {}", e),
         }
     }
 
-    if sub_agents.is_empty() {
-        eprintln!("\nError: No specialist agents available. Please build the servers first:");
+    if all_tools.is_empty() {
+        eprintln!("\nError: No tools available. Please build the servers first:");
         eprintln!("  cargo build --release");
         std::process::exit(1);
     }
 
-    println!("\n✓ {} specialist agents ready", sub_agents.len());
+    println!("\n✓ Total tools available: {}", all_tools.len());
+    println!();
 
-    // Create the director agent that coordinates specialists
-    let director = LlmAgentBuilder::new("creative_director")
-        .description("Creative director coordinating specialist agents")
-        .model(model.clone())
+    // Build the creative director agent with all tools
+    let mut builder = LlmAgentBuilder::new("creative_director")
+        .description("Creative director with full media production capabilities")
+        .model(model)
         .instruction(
-            "You are a creative director managing a team of specialists:\n\n\
-             - visual_artist: Creates images and graphics\n\
-             - video_director: Creates video content\n\
-             - music_composer: Composes music and soundtracks\n\
-             - voice_artist: Creates voiceovers and narration\n\
-             - post_producer: Handles media processing\n\n\
-             When users request complex projects:\n\
-             1. Break down the project into tasks for each specialist\n\
-             2. Coordinate the workflow (e.g., create image → animate → add music)\n\
-             3. Delegate to the appropriate specialist agents\n\
-             4. Ensure all pieces come together cohesively\n\n\
-             Think like a creative director - consider the overall vision,\n\
-             brand consistency, and how different media elements work together."
-        )
-        .sub_agents(sub_agents)
-        .build()?;
+            "You are a creative director with access to a complete media production toolkit.\n\n\
+             YOUR CAPABILITIES:\n\n\
+             🖼️  VISUAL DESIGN:\n\
+             - image_generate: Create images from text descriptions\n\
+             - image_upscale: Enhance image resolution (x2, x4)\n\n\
+             🎬 VIDEO PRODUCTION:\n\
+             - video_generate: Create videos from text (requires GCS output)\n\
+             - video_from_image: Animate still images into videos\n\
+             - video_extend: Extend existing videos\n\n\
+             🎵 AUDIO & MUSIC:\n\
+             - music_generate: Compose original music from descriptions\n\
+             - speech_synthesize: Convert text to natural speech\n\
+             - speech_list_voices: Browse available voice options\n\n\
+             🔧 POST-PRODUCTION:\n\
+             - ffmpeg_get_media_info: Analyze media files\n\
+             - ffmpeg_convert_audio_wav_to_mp3: Convert audio formats\n\
+             - ffmpeg_video_to_gif: Create GIFs from videos\n\
+             - ffmpeg_combine_audio_and_video: Merge audio/video tracks\n\
+             - ffmpeg_overlay_image_on_video: Add watermarks/overlays\n\
+             - ffmpeg_concatenate_media_files: Join media files\n\
+             - ffmpeg_adjust_volume: Change audio volume\n\
+             - ffmpeg_layer_audio_files: Mix multiple audio tracks\n\n\
+             WORKFLOW APPROACH:\n\
+             1. Understand the creative vision and requirements\n\
+             2. Break complex projects into logical steps\n\
+             3. Execute each step, building on previous outputs\n\
+             4. Combine elements using post-production tools\n\n\
+             Think like a creative director - consider brand consistency,\n\
+             visual storytelling, and how different media elements work together.\n\n\
+             For complex projects, explain your creative plan before executing."
+        );
 
-    println!("\n💬 Chat with the Creative Studio (type 'quit' to exit)\n");
+    for tool in all_tools {
+        builder = builder.tool(tool);
+    }
+
+    let agent = builder.build()?;
+
+    println!("💬 Chat with the Creative Studio (type 'quit' to exit)\n");
 
     let result = adk_cli::console::run_console(
-        Arc::new(director),
+        Arc::new(agent),
         "studio_session".to_string(),
         "user".to_string(),
     ).await;
 
-    println!("\nShutting down specialist agents...");
+    println!("\nShutting down servers...");
     for token in cancel_tokens {
         token.cancel();
     }

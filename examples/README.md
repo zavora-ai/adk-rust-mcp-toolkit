@@ -104,7 +104,7 @@ cargo run
 
 ### 6. Creative Studio (`creative-studio/`)
 
-A multi-agent system with specialized agents for different media types.
+A comprehensive media agent with access to all creative tools, acting as a creative director that can handle complex media projects.
 
 ```bash
 cd creative-studio

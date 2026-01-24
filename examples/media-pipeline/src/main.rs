@@ -44,12 +44,6 @@ impl ReadonlyContext for SimpleContext {
     }
 }
 
-struct McpServer {
-    name: &'static str,
-    path: &'static str,
-    cancel_token: Option<tokio_util::sync::CancellationToken>,
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
@@ -83,10 +77,11 @@ async fn main() -> Result<()> {
         }
 
         print!("  Starting {} server... ", name);
-        let mut cmd = Command::new(path);
-        match ().serve(TokioChildProcess::new(&mut cmd)?).await {
+        let cmd = Command::new(path);
+        match ().serve(TokioChildProcess::new(cmd)?).await {
             Ok(client) => {
-                let toolset = McpToolset::new(client).with_name(&format!("{}-tools", name.to_lowercase()));
+                let toolset = McpToolset::new(client)
+                    .with_name(&format!("{}-tools", name.to_lowercase()));
                 cancel_tokens.push(toolset.cancellation_token().await);
                 
                 match toolset.tools(ctx.clone()).await {

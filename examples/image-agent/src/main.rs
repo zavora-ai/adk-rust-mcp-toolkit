@@ -65,8 +65,8 @@ async fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    let mut cmd = Command::new(IMAGE_SERVER);
-    let client = ().serve(TokioChildProcess::new(&mut cmd)?).await?;
+    let cmd = Command::new(IMAGE_SERVER);
+    let client = ().serve(TokioChildProcess::new(cmd)?).await?;
     println!("✓ MCP server connected");
 
     // Create toolset from the MCP client

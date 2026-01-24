@@ -10,6 +10,14 @@ members = [
     "adk-rust-mcp-avtool",
     "tests/workspace_integration",
 ]
+exclude = [
+    "examples/image-agent",
+    "examples/video-agent",
+    "examples/music-agent",
+    "examples/speech-agent",
+    "examples/media-pipeline",
+    "examples/creative-studio",
+]
 
 [workspace.package]
 edition = "2024"

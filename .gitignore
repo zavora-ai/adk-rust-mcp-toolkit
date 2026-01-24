@@ -1,5 +1,6 @@
 # Rust build artifacts
 /target/
+**/target/
 **/*.rs.bk
 
 # IDE
@@ -18,3 +19,7 @@ Thumbs.db
 
 # Test output
 test_output/
+
+# Example build artifacts (each example is a standalone crate)
+examples/*/Cargo.lock
+examples/*/target/

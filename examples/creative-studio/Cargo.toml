@@ -7,14 +7,15 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
-adk-rust = "0.1"
-adk-agent = "0.1"
-adk-core = "0.1"
-adk-model = "0.1"
-adk-tool = "0.1"
-adk-cli = "0.1"
-rmcp = { version = "0.13", features = ["client", "transport-io"] }
+adk-rust = "0.2"
+adk-agent = "0.2"
+adk-core = "0.2"
+adk-model = "0.2"
+adk-tool = "0.2"
+adk-cli = "0.2"
+rmcp = { version = "0.9", features = ["client", "transport-child-process"] }
 tokio = { version = "1.43", features = ["full"] }
 anyhow = "1.0"
 dotenvy = "0.15"
 async-trait = "0.1"
+tokio-util = { version = "0.7", features = ["rt"] }
