@@ -4,6 +4,17 @@
 //! acting as a creative director that can handle complex media projects.
 //!
 //! ## Usage
+//!
+//! First, start the MCP servers in separate terminals:
+//! ```bash
+//! ./target/release/adk-rust-mcp-image --http --port 8080
+//! ./target/release/adk-rust-mcp-video --http --port 8081
+//! ./target/release/adk-rust-mcp-music --http --port 8082
+//! ./target/release/adk-rust-mcp-speech --http --port 8083
+//! ./target/release/adk-rust-mcp-avtool --http --port 8084
+//! ```
+//!
+//! Then run the agent:
 //! ```bash
 //! cargo run
 //! ```
@@ -16,17 +27,17 @@
 use adk_agent::LlmAgentBuilder;
 use adk_core::{Content, ReadonlyContext, Toolset};
 use adk_model::GeminiModel;
-use adk_tool::McpToolset;
+use adk_tool::McpHttpClientBuilder;
 use anyhow::Result;
-use rmcp::{ServiceExt, transport::TokioChildProcess};
 use std::sync::Arc;
-use tokio::process::Command;
+use std::time::Duration;
 
-const IMAGE_SERVER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/adk-rust-mcp-image");
-const VIDEO_SERVER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/adk-rust-mcp-video");
-const MUSIC_SERVER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/adk-rust-mcp-music");
-const SPEECH_SERVER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/adk-rust-mcp-speech");
-const AVTOOL_SERVER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/adk-rust-mcp-avtool");
+/// MCP server endpoints (can be overridden via environment variables)
+const DEFAULT_IMAGE_ENDPOINT: &str = "http://localhost:8080/mcp";
+const DEFAULT_VIDEO_ENDPOINT: &str = "http://localhost:8081/mcp";
+const DEFAULT_MUSIC_ENDPOINT: &str = "http://localhost:8082/mcp";
+const DEFAULT_SPEECH_ENDPOINT: &str = "http://localhost:8083/mcp";
+const DEFAULT_AVTOOL_ENDPOINT: &str = "http://localhost:8084/mcp";
 
 struct SimpleContext;
 
@@ -47,6 +58,7 @@ impl ReadonlyContext for SimpleContext {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
+    let _ = dotenvy::from_filename("../../.env");
 
     let api_key = std::env::var("GOOGLE_API_KEY")
         .expect("GOOGLE_API_KEY environment variable required");
@@ -58,30 +70,26 @@ async fn main() -> Result<()> {
     println!("Initializing creative tools...\n");
 
     let servers = [
-        ("Image", IMAGE_SERVER),
-        ("Video", VIDEO_SERVER),
-        ("Music", MUSIC_SERVER),
-        ("Speech", SPEECH_SERVER),
-        ("AVTool", AVTOOL_SERVER),
+        ("Image", std::env::var("IMAGE_MCP_ENDPOINT").unwrap_or_else(|_| DEFAULT_IMAGE_ENDPOINT.to_string()), Duration::from_secs(60)),
+        ("Video", std::env::var("VIDEO_MCP_ENDPOINT").unwrap_or_else(|_| DEFAULT_VIDEO_ENDPOINT.to_string()), Duration::from_secs(300)),
+        ("Music", std::env::var("MUSIC_MCP_ENDPOINT").unwrap_or_else(|_| DEFAULT_MUSIC_ENDPOINT.to_string()), Duration::from_secs(120)),
+        ("Speech", std::env::var("SPEECH_MCP_ENDPOINT").unwrap_or_else(|_| DEFAULT_SPEECH_ENDPOINT.to_string()), Duration::from_secs(60)),
+        ("AVTool", std::env::var("AVTOOL_MCP_ENDPOINT").unwrap_or_else(|_| DEFAULT_AVTOOL_ENDPOINT.to_string()), Duration::from_secs(60)),
     ];
 
     let mut all_tools = Vec::new();
     let mut cancel_tokens = Vec::new();
     let ctx = Arc::new(SimpleContext) as Arc<dyn ReadonlyContext>;
 
-    for (name, path) in &servers {
-        let server_path = std::path::Path::new(path);
-        if !server_path.exists() {
-            println!("  ⚠️  {} server not found, skipping", name);
-            continue;
-        }
-
-        print!("  Loading {} tools... ", name);
-        let cmd = Command::new(path);
-        match ().serve(TokioChildProcess::new(cmd)?).await {
-            Ok(client) => {
-                let toolset = McpToolset::new(client)
-                    .with_name(&format!("{}-tools", name.to_lowercase()));
+    for (name, endpoint, timeout) in &servers {
+        print!("  Loading {} tools ({})... ", name, endpoint);
+        
+        match McpHttpClientBuilder::new(endpoint)
+            .timeout(*timeout)
+            .connect()
+            .await
+        {
+            Ok(toolset) => {
                 cancel_tokens.push(toolset.cancellation_token().await);
                 
                 match toolset.tools(ctx.clone()).await {
@@ -97,8 +105,8 @@ async fn main() -> Result<()> {
     }
 
     if all_tools.is_empty() {
-        eprintln!("\nError: No tools available. Please build the servers first:");
-        eprintln!("  cargo build --release");
+        eprintln!("\nError: No tools available. Please start the MCP servers first.");
+        eprintln!("See the usage instructions at the top of this file.");
         std::process::exit(1);
     }
 
@@ -156,7 +164,7 @@ async fn main() -> Result<()> {
         "user".to_string(),
     ).await;
 
-    println!("\nShutting down servers...");
+    println!("\nShutting down...");
     for token in cancel_tokens {
         token.cancel();
     }

@@ -197,7 +197,7 @@ impl ServerHandler for SpeechServer {
 
     fn list_tools(
         &self,
-        _params: Option<rmcp::model::PaginatedRequestParam>,
+        _params: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<rmcp::model::ListToolsResult, McpError>> + Send + '_
     {
@@ -253,7 +253,7 @@ impl ServerHandler for SpeechServer {
 
     fn call_tool(
         &self,
-        params: rmcp::model::CallToolRequestParam,
+        params: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
         async move {
@@ -281,7 +281,7 @@ impl ServerHandler for SpeechServer {
 
     fn list_resources(
         &self,
-        _params: Option<rmcp::model::PaginatedRequestParam>,
+        _params: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<ListResourcesResult, McpError>> + Send + '_ {
         async move {
@@ -297,7 +297,7 @@ impl ServerHandler for SpeechServer {
 
     fn read_resource(
         &self,
-        params: rmcp::model::ReadResourceRequestParam,
+        params: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
         async move {

@@ -7,15 +7,13 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
-adk-rust = "0.2"
-adk-agent = "0.2"
-adk-core = "0.2"
-adk-model = "0.2"
-adk-tool = "0.2"
-adk-cli = "0.2"
-rmcp = { version = "0.9", features = ["client", "transport-child-process"] }
+# Use local adk-rust crates for latest MCP features
+adk-agent = { path = "../../../adk-rust/adk-agent" }
+adk-core = { path = "../../../adk-rust/adk-core" }
+adk-model = { path = "../../../adk-rust/adk-model" }
+adk-tool = { path = "../../../adk-rust/adk-tool", features = ["http-transport"] }
+adk-cli = { path = "../../../adk-rust/adk-cli" }
 tokio = { version = "1.43", features = ["full"] }
 anyhow = "1.0"
 dotenvy = "0.15"
 async-trait = "0.1"
-tokio-util = { version = "0.7", features = ["rt"] }

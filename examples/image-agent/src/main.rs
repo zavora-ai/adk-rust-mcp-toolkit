@@ -3,6 +3,14 @@
 //! An ADK agent that generates and upscales images using natural language.
 //!
 //! ## Usage
+//! 
+//! First, start the MCP server in one terminal:
+//! ```bash
+//! cd /path/to/adk-rust-mcp
+//! ./target/release/adk-rust-mcp-image --http --port 8080
+//! ```
+//!
+//! Then run the agent in another terminal:
 //! ```bash
 //! cargo run
 //! ```
@@ -16,14 +24,13 @@
 use adk_agent::LlmAgentBuilder;
 use adk_core::{Content, ReadonlyContext, Toolset};
 use adk_model::GeminiModel;
-use adk_tool::McpToolset;
+use adk_tool::McpHttpClientBuilder;
 use anyhow::Result;
-use rmcp::{ServiceExt, transport::TokioChildProcess};
 use std::sync::Arc;
-use tokio::process::Command;
+use std::time::Duration;
 
-/// Path to the image MCP server binary
-const IMAGE_SERVER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/adk-rust-mcp-image");
+/// Default MCP server endpoint
+const DEFAULT_MCP_ENDPOINT: &str = "http://localhost:8080/mcp";
 
 /// Minimal context for tool discovery
 struct SimpleContext;
@@ -44,34 +51,32 @@ impl ReadonlyContext for SimpleContext {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Load .env from current dir, then try workspace root
     dotenvy::dotenv().ok();
+    let _ = dotenvy::from_filename("../../.env");
 
     // Get API key for the LLM
     let api_key = std::env::var("GOOGLE_API_KEY")
         .expect("GOOGLE_API_KEY environment variable required");
+
+    // Get MCP server endpoint from env or use default
+    let mcp_endpoint = std::env::var("MCP_ENDPOINT")
+        .unwrap_or_else(|_| DEFAULT_MCP_ENDPOINT.to_string());
 
     // Create the LLM model for the agent
     let model = Arc::new(GeminiModel::new(&api_key, "gemini-2.0-flash")?);
 
     println!("🖼️  Image Agent");
     println!("================");
-    println!("Starting image generation MCP server...");
+    println!("Connecting to MCP server at {}...", mcp_endpoint);
 
-    // Start the image MCP server
-    let server_path = std::path::Path::new(IMAGE_SERVER);
-    if !server_path.exists() {
-        eprintln!("Error: Image server not found at {}", IMAGE_SERVER);
-        eprintln!("Please build the servers first: cargo build --release");
-        std::process::exit(1);
-    }
+    // Connect to the image MCP server via HTTP
+    let toolset = McpHttpClientBuilder::new(&mcp_endpoint)
+        .timeout(Duration::from_secs(60))
+        .connect()
+        .await?;
 
-    let cmd = Command::new(IMAGE_SERVER);
-    let client = ().serve(TokioChildProcess::new(cmd)?).await?;
     println!("✓ MCP server connected");
-
-    // Create toolset from the MCP client
-    let toolset = McpToolset::new(client)
-        .with_name("image-tools");
 
     // Get cancellation token for cleanup
     let cancel_token = toolset.cancellation_token().await;
@@ -118,7 +123,7 @@ async fn main() -> Result<()> {
     ).await;
 
     // Cleanup
-    println!("\nShutting down MCP server...");
+    println!("\nShutting down...");
     cancel_token.cancel();
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 

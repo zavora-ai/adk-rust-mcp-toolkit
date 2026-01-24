@@ -6,9 +6,11 @@
 adk-rust-mcp/
 ├── .env                      # Environment configuration
 ├── .kiro/
+│   ├── hooks/               # Automation hooks
 │   ├── specs/               # Feature specifications
 │   └── steering/            # Development guidelines
 ├── docs/                    # Documentation
+├── examples/                # ADK agent examples
 ├── adk-rust-mcp-common/     # Shared library
 ├── adk-rust-mcp-image/      # Image generation server
 ├── adk-rust-mcp-video/      # Video generation server
@@ -17,6 +19,12 @@ adk-rust-mcp/
 ├── adk-rust-mcp-multimodal/ # Multimodal generation server
 └── adk-rust-mcp-avtool/     # Audio/video processing server
 ```
+
+## Prerequisites
+
+- Rust 2024 edition (1.85+)
+- Google Cloud SDK
+- FFmpeg (for avtool server)
 
 ## Building
 
@@ -60,6 +68,9 @@ SKIP_INTEGRATION_TESTS=1 cargo test
 ```bash
 # Run with proptest
 cargo test --lib -- property_tests
+
+# More iterations
+PROPTEST_CASES=1000 cargo test --lib
 ```
 
 ## Adding a New Server
@@ -72,11 +83,11 @@ adk-rust-mcp-{name}/
 ├── tests/
 │   └── integration_test.rs
 └── src/
-    ├── lib.rs
-    ├── main.rs
-    ├── handler.rs
-    ├── resources.rs
-    └── server.rs
+    ├── lib.rs       # Library exports
+    ├── main.rs      # Entry point
+    ├── handler.rs   # Business logic
+    ├── resources.rs # MCP resources (if any)
+    └── server.rs    # ServerHandler impl
 ```
 
 2. Add to workspace `Cargo.toml`:
@@ -89,11 +100,30 @@ members = [
 ]
 ```
 
-3. Implement the `ServerHandler` trait (see steering docs).
+3. Implement the `ServerHandler` trait following patterns in `.kiro/steering/rmcp-server-patterns.md`
 
-4. Add integration tests.
+4. Add documentation:
+   - `docs/servers/{name}.md`
+   - `docs/api/{name}.md`
 
-5. Update documentation.
+5. Update `docs/README.md` and `docs/api/README.md`
+
+## rmcp 0.14 API
+
+The workspace uses rmcp 0.14. Key types:
+
+```rust
+use rmcp::{
+    model::{
+        CallToolResult, Content, ListResourcesResult, ReadResourceResult,
+        ResourceContents, ServerCapabilities, ServerInfo,
+        PaginatedRequestParams, CallToolRequestParams, ReadResourceRequestParams,
+    },
+    ErrorData as McpError, ServerHandler,
+};
+```
+
+See `.kiro/steering/rmcp-server-patterns.md` for complete implementation patterns.
 
 ## Code Style
 
@@ -106,18 +136,30 @@ members = [
 cargo fmt
 
 # Lint
-cargo clippy
+cargo clippy --workspace --all-targets
 ```
 
-## Documentation
+## Running Servers Locally
 
-Documentation is auto-generated when source files change. See hooks in `.kiro/hooks/`.
-
-Manual generation:
+### Stdio Mode (Default)
 
 ```bash
-# Generate API docs
-cargo doc --no-deps --open
+./target/release/adk-rust-mcp-image
+```
+
+### HTTP Mode
+
+```bash
+./target/release/adk-rust-mcp-image --transport http --port 8080
+```
+
+### Testing HTTP Endpoint
+
+```bash
+curl http://localhost:8080/mcp -X POST \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'
 ```
 
 ## Debugging
@@ -138,21 +180,47 @@ npm install -g @anthropic/mcp-inspector
 mcp-inspector ./target/debug/adk-rust-mcp-image
 ```
 
+## Examples Development
+
+The examples use local path dependencies to `adk-rust`:
+
+```toml
+[dependencies]
+adk-agent = { path = "../../../adk-rust/adk-agent" }
+adk-tool = { path = "../../../adk-rust/adk-tool", features = ["http-transport"] }
+```
+
+To test examples:
+
+```bash
+# Terminal 1: Start server
+./target/release/adk-rust-mcp-image --transport http --port 8080
+
+# Terminal 2: Run example
+cd examples/image-agent
+cargo run --release
+```
+
 ## Release Process
 
 1. Update version in `Cargo.toml`
-2. Run all tests
-3. Build release binaries
-4. Update documentation
-5. Tag release
+2. Update `CHANGELOG.md`
+3. Run all tests
+4. Build release binaries
+5. Update documentation
+6. Tag release
 
 ```bash
 # Version bump
 cargo set-version 0.2.0
 
 # Full test
-cargo test
+cargo test --workspace
 
 # Release build
 cargo build --release
+
+# Tag
+git tag v0.2.0
+git push origin v0.2.0
 ```

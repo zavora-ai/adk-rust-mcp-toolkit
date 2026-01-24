@@ -9,12 +9,13 @@ Thank you for your interest in contributing! This document provides guidelines f
 3. Set up the development environment:
 
 ```bash
-# Install Rust (if not already installed)
+# Install Rust 2024 edition (1.85+)
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup update
 
 # Clone and build
-git clone https://github.com/zavora-ai/adk-rust-mcp-toolkit
-cd adk-rust-mcp-toolkit
+git clone https://github.com/anthropics/adk-rust-mcp
+cd adk-rust-mcp
 cargo build
 ```
 
@@ -56,6 +57,8 @@ cargo test --workspace
 
 ## Project Structure
 
+Each MCP server follows this structure:
+
 ```
 adk-rust-mcp-{name}/
 ├── Cargo.toml
@@ -73,7 +76,7 @@ adk-rust-mcp-{name}/
 
 1. Create the crate directory: `adk-rust-mcp-{name}/`
 2. Add to workspace in root `Cargo.toml`
-3. Implement following the patterns in `rmcp-server-patterns.md`
+3. Implement following the patterns in `.kiro/steering/rmcp-server-patterns.md`
 4. Add documentation:
    - `docs/servers/{name}.md`
    - `docs/api/{name}.md`
@@ -131,16 +134,18 @@ SKIP_INTEGRATION_TESTS=1 cargo test
 ## Documentation
 
 - Update relevant docs when changing functionality
-- Use the audit hook to check for documentation gaps
 - Follow the documentation standards in `.kiro/steering/documentation-maintenance.md`
+- Server docs go in `docs/servers/`
+- API docs go in `docs/api/`
 
 ## Pull Request Process
 
 1. Ensure all tests pass
 2. Update documentation
-3. Add a clear PR description
-4. Link any related issues
-5. Request review from maintainers
+3. Update CHANGELOG.md
+4. Add a clear PR description
+5. Link any related issues
+6. Request review from maintainers
 
 ## Code of Conduct
 

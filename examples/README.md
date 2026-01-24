@@ -2,6 +2,8 @@
 
 This directory contains examples demonstrating how to use ADK-Rust agents with the MCP toolkit servers. Each example showcases natural language interaction with generative media capabilities.
 
+All examples use **HTTP Streamable transport** for MCP communication, which is the recommended approach for ADK agents.
+
 ## Prerequisites
 
 1. **Build the MCP servers:**
@@ -22,23 +24,31 @@ This directory contains examples demonstrating how to use ADK-Rust agents with t
    # GCS_BUCKET - Optional, for cloud storage output
    ```
 
-## Examples
+3. **Install ADK-Rust dependencies:**
+   The examples use local path dependencies to `adk-rust`. Ensure the `adk-rust` repository is cloned at `../../../adk-rust` relative to the examples directory.
 
-Each example is a standalone crate. Navigate to the example directory and run:
+## Running Examples
 
-```bash
-cd <example-name>
-cargo run
-```
+Each example requires starting the MCP server(s) first, then running the agent.
 
 ### 1. Image Agent (`image-agent/`)
 
 An agent that generates and upscales images using natural language.
 
+**Terminal 1 - Start the MCP server:**
+```bash
+cd ..
+./target/release/adk-rust-mcp-image --transport http --port 8080
+```
+
+**Terminal 2 - Run the agent:**
 ```bash
 cd image-agent
-cargo run
+cargo run --release
 ```
+
+**Environment variables:**
+- `MCP_ENDPOINT` - Override default endpoint (default: `http://localhost:8080/mcp`)
 
 **Try these prompts:**
 - "Generate a beautiful sunset over mountains"
@@ -50,10 +60,19 @@ cargo run
 
 An agent that creates videos from text descriptions.
 
+**Terminal 1 - Start the MCP server:**
+```bash
+./target/release/adk-rust-mcp-video --transport http --port 8081
+```
+
+**Terminal 2 - Run the agent:**
 ```bash
 cd video-agent
-cargo run
+cargo run --release
 ```
+
+**Environment variables:**
+- `VIDEO_MCP_ENDPOINT` - Override default endpoint (default: `http://localhost:8081/mcp`)
 
 **Try these prompts:**
 - "Create a video of waves crashing on a beach"
@@ -64,10 +83,19 @@ cargo run
 
 An agent that composes music from descriptions.
 
+**Terminal 1 - Start the MCP server:**
+```bash
+./target/release/adk-rust-mcp-music --transport http --port 8082
+```
+
+**Terminal 2 - Run the agent:**
 ```bash
 cd music-agent
-cargo run
+cargo run --release
 ```
+
+**Environment variables:**
+- `MUSIC_MCP_ENDPOINT` - Override default endpoint (default: `http://localhost:8082/mcp`)
 
 **Try these prompts:**
 - "Compose an upbeat jazz piano piece"
@@ -78,10 +106,19 @@ cargo run
 
 An agent that converts text to natural speech.
 
+**Terminal 1 - Start the MCP server:**
+```bash
+./target/release/adk-rust-mcp-speech --transport http --port 8083
+```
+
+**Terminal 2 - Run the agent:**
 ```bash
 cd speech-agent
-cargo run
+cargo run --release
 ```
+
+**Environment variables:**
+- `SPEECH_MCP_ENDPOINT` - Override default endpoint (default: `http://localhost:8083/mcp`)
 
 **Try these prompts:**
 - "Say 'Welcome to our application' in a cheerful voice"
@@ -92,10 +129,23 @@ cargo run
 
 An agent that orchestrates multiple media tools for complex workflows.
 
+**Start all MCP servers (in separate terminals):**
+```bash
+./target/release/adk-rust-mcp-image --transport http --port 8080
+./target/release/adk-rust-mcp-video --transport http --port 8081
+./target/release/adk-rust-mcp-music --transport http --port 8082
+./target/release/adk-rust-mcp-speech --transport http --port 8083
+./target/release/adk-rust-mcp-avtool --transport http --port 8084
+```
+
+**Run the agent:**
 ```bash
 cd media-pipeline
-cargo run
+cargo run --release
 ```
+
+**Environment variables:**
+- `IMAGE_MCP_ENDPOINT`, `VIDEO_MCP_ENDPOINT`, `MUSIC_MCP_ENDPOINT`, `SPEECH_MCP_ENDPOINT`, `AVTOOL_MCP_ENDPOINT`
 
 **Try these prompts:**
 - "Create a video with background music"
@@ -104,11 +154,21 @@ cargo run
 
 ### 6. Creative Studio (`creative-studio/`)
 
-A comprehensive media agent with access to all creative tools, acting as a creative director that can handle complex media projects.
+A comprehensive media agent with access to all creative tools, acting as a creative director.
 
+**Start all MCP servers (same as media-pipeline):**
+```bash
+./target/release/adk-rust-mcp-image --transport http --port 8080
+./target/release/adk-rust-mcp-video --transport http --port 8081
+./target/release/adk-rust-mcp-music --transport http --port 8082
+./target/release/adk-rust-mcp-speech --transport http --port 8083
+./target/release/adk-rust-mcp-avtool --transport http --port 8084
+```
+
+**Run the agent:**
 ```bash
 cd creative-studio
-cargo run
+cargo run --release
 ```
 
 **Try these prompts:**
@@ -123,11 +183,14 @@ cargo run
 │                    ADK Agent (LLM)                       │
 │              Natural Language Understanding              │
 ├─────────────────────────────────────────────────────────┤
+│              McpHttpClientBuilder                        │
+│           HTTP Streamable Transport                      │
+├─────────────────────────────────────────────────────────┤
 │                    McpToolset                            │
 │              Tool Discovery & Execution                  │
 ├──────────┬──────────┬──────────┬──────────┬────────────┤
 │  Image   │  Video   │  Music   │  Speech  │  AVTool    │
-│  Server  │  Server  │  Server  │  Server  │  Server    │
+│  :8080   │  :8081   │  :8082   │  :8083   │  :8084     │
 └──────────┴──────────┴──────────┴──────────┴────────────┘
 ```
 
@@ -148,14 +211,20 @@ let model = Arc::new(AnthropicModel::new(&api_key, "claude-sonnet-4")?);
 let model = Arc::new(OllamaModel::new("http://localhost:11434", "llama3.2")?);
 ```
 
-### Server Paths
+### Custom MCP Endpoints
 
-Update the server paths in examples if your binaries are in a different location:
+Override default endpoints using environment variables:
 
-```rust
-const IMAGE_SERVER: &str = "../target/release/adk-rust-mcp-image";
-const VIDEO_SERVER: &str = "../target/release/adk-rust-mcp-video";
-// etc.
+```bash
+MCP_ENDPOINT=http://remote-server:8080/mcp cargo run
+```
+
+Or configure multiple endpoints:
+
+```bash
+IMAGE_MCP_ENDPOINT=http://server1:8080/mcp \
+VIDEO_MCP_ENDPOINT=http://server2:8081/mcp \
+cargo run
 ```
 
 ## Troubleshooting
@@ -173,14 +242,27 @@ echo $GOOGLE_API_KEY
 echo $PROJECT_ID
 ```
 
-### MCP connection issues
-The examples use stdio transport. Ensure the server binaries are executable:
+### MCP connection refused
+Ensure the MCP server is running and listening on the correct port:
 ```bash
-chmod +x ../target/release/adk-rust-mcp-*
+# Check if server is running
+curl http://localhost:8080/mcp -X POST \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'
+```
+
+### Timeout errors
+For long-running operations (video generation), increase the timeout:
+```rust
+let toolset = McpHttpClientBuilder::new(&endpoint)
+    .timeout(Duration::from_secs(300))  // 5 minutes
+    .connect()
+    .await?;
 ```
 
 ## Learn More
 
-- [ADK-Rust Documentation](https://github.com/zavora-ai/adk-rust/wiki)
-- [MCP Tools Guide](https://github.com/zavora-ai/adk-rust/wiki/MCP-Tools)
+- [ADK-Rust Documentation](https://github.com/anthropics/adk-rust)
+- [MCP Specification](https://modelcontextprotocol.io/)
 - [ADK Toolkit Documentation](../docs/README.md)

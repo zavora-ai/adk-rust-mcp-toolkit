@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-01-24
+
+### Changed
+
+- **Breaking**: Upgraded rmcp from 0.13 to 0.14
+  - Updated deprecated type names: `PaginatedRequestParam` → `PaginatedRequestParams`
+  - Updated deprecated type names: `CallToolRequestParam` → `CallToolRequestParams`
+  - Updated deprecated type names: `ReadResourceRequestParam` → `ReadResourceRequestParams`
+
+- **Examples**: Updated all ADK agent examples to use HTTP Streamable transport
+  - `image-agent`, `video-agent`, `music-agent`, `speech-agent` now connect via HTTP
+  - `media-pipeline` and `creative-studio` connect to multiple servers via HTTP
+  - Removed stdio transport from examples (servers run separately)
+  - Added configurable MCP endpoints via environment variables
+
+### Added
+
+- HTTP Streamable transport support for all MCP servers
+- Environment variable configuration for MCP endpoints in examples
+- Updated documentation for HTTP transport usage
+
+### Fixed
+
+- Fixed rmcp 0.14 compatibility issues across all server implementations
+
 ## [0.1.0] - 2025-01-24
 
 ### Added
@@ -66,6 +91,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Transport options: stdio, HTTP, SSE
 - OpenTelemetry tracing support (optional feature)
 
+#### Examples
+- **image-agent**: ADK agent for image generation
+- **video-agent**: ADK agent for video generation
+- **music-agent**: ADK agent for music composition
+- **speech-agent**: ADK agent for text-to-speech
+- **media-pipeline**: Multi-tool orchestration agent
+- **creative-studio**: Full creative suite agent
+
 #### Documentation
 - Comprehensive server documentation in `docs/servers/`
 - API reference documentation in `docs/api/`
@@ -75,27 +108,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Development Infrastructure
 - Kiro hooks for automated documentation updates
-  - `update-api-docs` - Updates API docs on handler changes
-  - `update-server-docs` - Updates server docs on server changes
-  - `update-readme-new-server` - Creates docs for new servers
-  - `audit-documentation` - Manual audit hook for documentation completeness
 - Steering documents for development patterns
-  - `rmcp-server-patterns.md` - RMCP implementation patterns
-  - `documentation-maintenance.md` - Documentation maintenance guide
 - Property-based testing with proptest
 - Integration tests for all servers
 - Workspace-level integration tests
 
-#### Project Setup
-- Apache 2.0 license (Zavora Technologies Ltd)
-- Contributing guidelines
-- Project README with quick start guide
-- Provider-agnostic architecture design
-
 ### Technical Details
 
 #### Dependencies
-- rmcp v0.13 for MCP protocol implementation
+- rmcp v0.14 for MCP protocol implementation
 - tokio for async runtime
 - reqwest for HTTP client
 - serde/serde_json for serialization
@@ -109,4 +130,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Azure OpenAI - Planned
 - Local/self-hosted models - Planned
 
-[0.1.0]: https://github.com/zavora-ai/adk-rust-mcp-toolkit/releases/tag/v0.1.0
+[0.2.0]: https://github.com/anthropics/adk-rust-mcp/releases/tag/v0.2.0
+[0.1.0]: https://github.com/anthropics/adk-rust-mcp/releases/tag/v0.1.0

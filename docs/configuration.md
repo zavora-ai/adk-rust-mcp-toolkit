@@ -78,26 +78,52 @@ gcloud auth application-default print-access-token
 
 ## Transport Options
 
-All servers support three transport modes:
+All servers support three transport modes via command-line arguments:
 
 ### Stdio (Default)
 
+Best for local subprocess communication (Claude Desktop, Kiro):
+
 ```bash
 ./adk-rust-mcp-image
-# or
+# or explicitly
 ./adk-rust-mcp-image --transport stdio
 ```
 
-### HTTP
+### HTTP Streamable
+
+Best for remote clients, web applications, and ADK agents:
 
 ```bash
 ./adk-rust-mcp-image --transport http --port 8080
 ```
 
+The MCP endpoint is available at `/mcp` (e.g., `http://localhost:8080/mcp`).
+
 ### SSE (Server-Sent Events)
+
+For real-time streaming applications:
 
 ```bash
 ./adk-rust-mcp-image --transport sse --port 8080
+```
+
+## Port Configuration
+
+When running multiple servers, use different ports:
+
+```bash
+./adk-rust-mcp-image --transport http --port 8080
+./adk-rust-mcp-video --transport http --port 8081
+./adk-rust-mcp-music --transport http --port 8082
+./adk-rust-mcp-speech --transport http --port 8083
+./adk-rust-mcp-avtool --transport http --port 8084
+```
+
+Or use the `PORT` environment variable:
+
+```bash
+PORT=9000 ./adk-rust-mcp-image --transport http
 ```
 
 ## Logging
@@ -113,4 +139,23 @@ RUST_LOG=adk_rust_mcp_image=debug ./adk-rust-mcp-image
 
 # Multiple levels
 RUST_LOG=info,adk_rust_mcp_common=debug ./adk-rust-mcp-image
+
+# Trace level for detailed debugging
+RUST_LOG=trace ./adk-rust-mcp-image
 ```
+
+## OpenTelemetry Tracing (Optional)
+
+When built with the `otel` feature, servers support OpenTelemetry tracing:
+
+```bash
+# Build with OpenTelemetry support
+cargo build --package adk-rust-mcp-image --features otel
+
+# Enable tracing at runtime
+OTEL_ENABLED=true PROJECT_ID=my-project ./adk-rust-mcp-image
+```
+
+Environment variables for OpenTelemetry:
+- `OTEL_ENABLED` - Enable/disable tracing (default: false)
+- `OTEL_SERVICE_NAME` - Service name for traces (default: server name)

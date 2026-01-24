@@ -3,6 +3,14 @@
 //! An ADK agent that composes music from descriptions.
 //!
 //! ## Usage
+//!
+//! First, start the MCP server in one terminal:
+//! ```bash
+//! cd /path/to/adk-rust-mcp
+//! ./target/release/adk-rust-mcp-music --http --port 8082
+//! ```
+//!
+//! Then run the agent in another terminal:
 //! ```bash
 //! cargo run
 //! ```
@@ -15,13 +23,13 @@
 use adk_agent::LlmAgentBuilder;
 use adk_core::{Content, ReadonlyContext, Toolset};
 use adk_model::GeminiModel;
-use adk_tool::McpToolset;
+use adk_tool::McpHttpClientBuilder;
 use anyhow::Result;
-use rmcp::{ServiceExt, transport::TokioChildProcess};
 use std::sync::Arc;
-use tokio::process::Command;
+use std::time::Duration;
 
-const MUSIC_SERVER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/adk-rust-mcp-music");
+/// Default MCP server endpoint
+const DEFAULT_MCP_ENDPOINT: &str = "http://localhost:8082/mcp";
 
 struct SimpleContext;
 
@@ -42,28 +50,28 @@ impl ReadonlyContext for SimpleContext {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
+    let _ = dotenvy::from_filename("../../.env");
 
     let api_key = std::env::var("GOOGLE_API_KEY")
         .expect("GOOGLE_API_KEY environment variable required");
+
+    let mcp_endpoint = std::env::var("MUSIC_MCP_ENDPOINT")
+        .unwrap_or_else(|_| DEFAULT_MCP_ENDPOINT.to_string());
 
     let model = Arc::new(GeminiModel::new(&api_key, "gemini-2.0-flash")?);
 
     println!("🎵 Music Agent");
     println!("===============");
-    println!("Starting music generation MCP server...");
+    println!("Connecting to MCP server at {}...", mcp_endpoint);
 
-    let server_path = std::path::Path::new(MUSIC_SERVER);
-    if !server_path.exists() {
-        eprintln!("Error: Music server not found at {}", MUSIC_SERVER);
-        eprintln!("Please build the servers first: cargo build --release");
-        std::process::exit(1);
-    }
+    // Connect to the music MCP server via HTTP
+    let toolset = McpHttpClientBuilder::new(&mcp_endpoint)
+        .timeout(Duration::from_secs(120))
+        .connect()
+        .await?;
 
-    let cmd = Command::new(MUSIC_SERVER);
-    let client = ().serve(TokioChildProcess::new(cmd)?).await?;
     println!("✓ MCP server connected");
 
-    let toolset = McpToolset::new(client).with_name("music-tools");
     let cancel_token = toolset.cancellation_token().await;
 
     let ctx = Arc::new(SimpleContext) as Arc<dyn ReadonlyContext>;
@@ -106,7 +114,7 @@ async fn main() -> Result<()> {
         "user".to_string(),
     ).await;
 
-    println!("\nShutting down MCP server...");
+    println!("\nShutting down...");
     cancel_token.cancel();
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 

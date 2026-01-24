@@ -289,7 +289,7 @@ impl ServerHandler for VideoServer {
 
     fn list_tools(
         &self,
-        _params: Option<rmcp::model::PaginatedRequestParam>,
+        _params: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<rmcp::model::ListToolsResult, McpError>> + Send + '_ {
         async move {
@@ -375,7 +375,7 @@ impl ServerHandler for VideoServer {
 
     fn call_tool(
         &self,
-        params: rmcp::model::CallToolRequestParam,
+        params: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
         async move {
@@ -417,7 +417,7 @@ impl ServerHandler for VideoServer {
 
     fn list_resources(
         &self,
-        _params: Option<rmcp::model::PaginatedRequestParam>,
+        _params: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<ListResourcesResult, McpError>> + Send + '_ {
         async move {
@@ -461,7 +461,7 @@ impl ServerHandler for VideoServer {
 
     fn read_resource(
         &self,
-        params: rmcp::model::ReadResourceRequestParam,
+        params: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
         async move {

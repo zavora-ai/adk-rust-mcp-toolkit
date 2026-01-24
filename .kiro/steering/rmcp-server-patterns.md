@@ -1,10 +1,10 @@
 # RMCP Server Implementation Patterns
 
-This document captures patterns and best practices for implementing MCP servers using the `rmcp` crate (v0.13) in this workspace.
+This document captures patterns and best practices for implementing MCP servers using the `rmcp` crate (v0.14) in this workspace.
 
 ## Overview
 
-The workspace uses `rmcp` v0.13 for implementing Model Context Protocol servers. Each server follows a consistent pattern with handlers, resources, and the MCP server trait implementation.
+The workspace uses `rmcp` v0.14 for implementing Model Context Protocol servers. Each server follows a consistent pattern with handlers, resources, and the MCP server trait implementation.
 
 ## Project Structure
 
@@ -43,7 +43,7 @@ PORT=8080
 RUST_LOG=info
 ```
 
-## Key rmcp 0.13 API Patterns
+## Key rmcp 0.14 API Patterns
 
 ### ServerHandler Implementation
 
@@ -72,7 +72,7 @@ impl ServerHandler for MyServer {
 
     fn list_tools(
         &self,
-        _params: Option<rmcp::model::PaginatedRequestParam>,
+        _params: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<rmcp::model::ListToolsResult, McpError>> + Send + '_ {
         async move {
@@ -82,7 +82,7 @@ impl ServerHandler for MyServer {
 
     fn call_tool(
         &self,
-        params: rmcp::model::CallToolRequestParam,
+        params: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
         async move {
@@ -92,7 +92,7 @@ impl ServerHandler for MyServer {
 
     fn list_resources(
         &self,
-        _params: Option<rmcp::model::PaginatedRequestParam>,
+        _params: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<ListResourcesResult, McpError>> + Send + '_ {
         async move {
@@ -102,7 +102,7 @@ impl ServerHandler for MyServer {
 
     fn read_resource(
         &self,
-        params: rmcp::model::ReadResourceRequestParam,
+        params: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
         async move {
@@ -156,7 +156,7 @@ fn list_tools(&self, ...) -> ... {
 Handle tool calls by matching on the tool name:
 
 ```rust
-fn call_tool(&self, params: rmcp::model::CallToolRequestParam, ...) -> ... {
+fn call_tool(&self, params: rmcp::model::CallToolRequestParams, ...) -> ... {
     async move {
         match params.name.as_ref() {
             "tool_name" => {
@@ -208,7 +208,7 @@ fn list_resources(&self, ...) -> ... {
 ### Resource Reading
 
 ```rust
-fn read_resource(&self, params: rmcp::model::ReadResourceRequestParam, ...) -> ... {
+fn read_resource(&self, params: rmcp::model::ReadResourceRequestParams, ...) -> ... {
     async move {
         let uri = &params.uri;
         
