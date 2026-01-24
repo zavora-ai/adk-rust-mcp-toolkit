@@ -6,10 +6,10 @@ This section contains detailed API documentation for all MCP servers.
 
 - [Image Server API](./image.md)
 - [Video Server API](./video.md)
+- [Music Server API](./music.md)
+- [Speech Server API](./speech.md)
 - [Multimodal Server API](./multimodal.md)
-- Music Server API (coming soon)
-- Speech Server API (coming soon)
-- AVTool Server API (coming soon)
+- [AVTool Server API](./avtool.md)
 
 ## Common Patterns
 

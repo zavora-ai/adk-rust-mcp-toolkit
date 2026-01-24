@@ -14,9 +14,9 @@ members = [
 [workspace.package]
 edition = "2024"
 version = "0.1.0"
-authors = ["ADK Team"]
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/example/adk-rust-mcp-genmedia"
+authors = ["James Karanja Maina"]
+license = "Apache-2.0"
+repository = "https://github.com/zavora-ai/adk-rust-mcp-toolkit"
 
 [workspace.dependencies]
 # Async runtime

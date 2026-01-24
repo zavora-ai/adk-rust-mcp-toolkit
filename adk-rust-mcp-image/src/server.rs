@@ -2,9 +2,10 @@
 //!
 //! This module provides the MCP server handler that exposes:
 //! - `image_generate` tool for text-to-image generation
+//! - `image_upscale` tool for image upscaling
 //! - Resources for models, segmentation classes, and providers
 
-use crate::handler::{ImageGenerateParams, ImageGenerateResult, ImageHandler};
+use crate::handler::{ImageGenerateParams, ImageGenerateResult, ImageHandler, ImageUpscaleParams, ImageUpscaleResult};
 use crate::resources;
 use adk_rust_mcp_common::config::Config;
 use adk_rust_mcp_common::error::Error;
@@ -74,6 +75,33 @@ impl From<ImageGenerateToolParams> for ImageGenerateParams {
     }
 }
 
+/// Tool parameters wrapper for image_upscale.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ImageUpscaleToolParams {
+    /// Source image to upscale (base64 data, local path, or GCS URI)
+    pub image: String,
+    /// Upscale factor: "x2" or "x4" (default: "x2")
+    #[serde(default)]
+    pub upscale_factor: Option<String>,
+    /// Output file path for saving locally
+    #[serde(default)]
+    pub output_file: Option<String>,
+    /// Output storage URI (e.g., gs://bucket/path)
+    #[serde(default)]
+    pub output_uri: Option<String>,
+}
+
+impl From<ImageUpscaleToolParams> for ImageUpscaleParams {
+    fn from(params: ImageUpscaleToolParams) -> Self {
+        Self {
+            image: params.image,
+            upscale_factor: params.upscale_factor.unwrap_or_else(|| "x2".to_string()),
+            output_file: params.output_file,
+            output_uri: params.output_uri,
+        }
+    }
+}
+
 impl ImageServer {
     /// Create a new ImageServer with the given configuration.
     pub fn new(config: Config) -> Self {
@@ -129,14 +157,50 @@ impl ImageServer {
 
         Ok(CallToolResult::success(content))
     }
+
+    /// Upscale an image.
+    pub async fn upscale_image(&self, params: ImageUpscaleToolParams) -> Result<CallToolResult, McpError> {
+        info!(upscale_factor = ?params.upscale_factor, "Upscaling image");
+
+        // Ensure handler is initialized
+        self.ensure_handler().await.map_err(|e| {
+            McpError::internal_error(format!("Failed to initialize handler: {}", e), None)
+        })?;
+
+        let handler_guard = self.handler.read().await;
+        let handler = handler_guard.as_ref().ok_or_else(|| {
+            McpError::internal_error("Handler not initialized", None)
+        })?;
+
+        let upscale_params: ImageUpscaleParams = params.into();
+        let result = handler.upscale_image(upscale_params).await.map_err(|e| {
+            McpError::internal_error(format!("Image upscaling failed: {}", e), None)
+        })?;
+
+        // Convert result to MCP content
+        let content = match result {
+            ImageUpscaleResult::Base64(image) => {
+                vec![Content::image(image.data, image.mime_type)]
+            }
+            ImageUpscaleResult::LocalFile(path) => {
+                vec![Content::text(format!("Upscaled image saved to: {}", path))]
+            }
+            ImageUpscaleResult::StorageUri(uri) => {
+                vec![Content::text(format!("Upscaled image uploaded to: {}", uri))]
+            }
+        };
+
+        Ok(CallToolResult::success(content))
+    }
 }
 
 impl ServerHandler for ImageServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             instructions: Some(
-                "Image generation server using Google Vertex AI Imagen API. \
-                 Use the image_generate tool to create images from text prompts."
+                "Image generation and processing server using Google Vertex AI Imagen API. \
+                 Use image_generate to create images from text prompts, \
+                 and image_upscale to upscale existing images."
                     .to_string(),
             ),
             capabilities: ServerCapabilities::builder()
@@ -156,30 +220,54 @@ impl ServerHandler for ImageServer {
             use rmcp::model::{ListToolsResult, Tool};
             use schemars::schema_for;
 
-            let schema = schema_for!(ImageGenerateToolParams);
-            let schema_value = serde_json::to_value(&schema).unwrap_or_default();
-            
-            // Convert to Map
-            let input_schema = match schema_value {
+            // image_generate tool
+            let gen_schema = schema_for!(ImageGenerateToolParams);
+            let gen_schema_value = serde_json::to_value(&gen_schema).unwrap_or_default();
+            let gen_input_schema = match gen_schema_value {
+                serde_json::Value::Object(map) => Arc::new(map),
+                _ => Arc::new(serde_json::Map::new()),
+            };
+
+            // image_upscale tool
+            let upscale_schema = schema_for!(ImageUpscaleToolParams);
+            let upscale_schema_value = serde_json::to_value(&upscale_schema).unwrap_or_default();
+            let upscale_input_schema = match upscale_schema_value {
                 serde_json::Value::Object(map) => Arc::new(map),
                 _ => Arc::new(serde_json::Map::new()),
             };
 
             Ok(ListToolsResult {
-                tools: vec![Tool {
-                    name: Cow::Borrowed("image_generate"),
-                    description: Some(Cow::Borrowed(
-                        "Generate images from a text prompt using Google's Imagen API. \
-                         Returns base64-encoded image data, local file paths, or storage URIs \
-                         depending on output parameters."
-                    )),
-                    input_schema,
-                    annotations: None,
-                    icons: None,
-                    meta: None,
-                    output_schema: None,
-                    title: None,
-                }],
+                tools: vec![
+                    Tool {
+                        name: Cow::Borrowed("image_generate"),
+                        description: Some(Cow::Borrowed(
+                            "Generate images from a text prompt using Google's Imagen API. \
+                             Returns base64-encoded image data, local file paths, or storage URIs \
+                             depending on output parameters."
+                        )),
+                        input_schema: gen_input_schema,
+                        annotations: None,
+                        icons: None,
+                        meta: None,
+                        output_schema: None,
+                        title: None,
+                    },
+                    Tool {
+                        name: Cow::Borrowed("image_upscale"),
+                        description: Some(Cow::Borrowed(
+                            "Upscale an image using Google's Imagen 4.0 Upscale API. \
+                             Supports x2 and x4 upscale factors. \
+                             Accepts base64 image data, local file path, or GCS URI as input. \
+                             Returns base64-encoded image data, local file path, or storage URI."
+                        )),
+                        input_schema: upscale_input_schema,
+                        annotations: None,
+                        icons: None,
+                        meta: None,
+                        output_schema: None,
+                        title: None,
+                    },
+                ],
                 next_cursor: None,
                 meta: None,
             })
@@ -202,6 +290,16 @@ impl ServerHandler for ImageServer {
                         .ok_or_else(|| McpError::invalid_params("Missing parameters", None))?;
 
                     self.generate_image(tool_params).await
+                }
+                "image_upscale" => {
+                    let tool_params: ImageUpscaleToolParams = params
+                        .arguments
+                        .map(|args| serde_json::from_value(serde_json::Value::Object(args)))
+                        .transpose()
+                        .map_err(|e| McpError::invalid_params(format!("Invalid parameters: {}", e), None))?
+                        .ok_or_else(|| McpError::invalid_params("Missing parameters", None))?;
+
+                    self.upscale_image(tool_params).await
                 }
                 _ => Err(McpError::invalid_params(format!("Unknown tool: {}", params.name), None)),
             }

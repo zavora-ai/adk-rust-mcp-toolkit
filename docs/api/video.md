@@ -110,7 +110,7 @@ Generate videos from text prompts using Vertex AI Veo.
 
 ### video_from_image
 
-Generate videos from an image using Vertex AI Veo (image-to-video).
+Generate videos from an image using Vertex AI Veo (image-to-video). Supports both single-image I2V and interpolation mode (first + last frame).
 
 #### Request Schema
 
@@ -121,11 +121,15 @@ Generate videos from an image using Vertex AI Veo (image-to-video).
   "properties": {
     "image": {
       "type": "string",
-      "description": "Source image (base64 data, local file path, or GCS URI)"
+      "description": "Source image for video generation (first frame for interpolation). Can be base64 data, local file path, or GCS URI"
     },
     "prompt": {
       "type": "string",
       "description": "Text prompt describing the desired video motion"
+    },
+    "last_frame_image": {
+      "type": "string",
+      "description": "Last frame image for interpolation mode. If provided, generates a video interpolating between `image` and `last_frame_image`. Can be base64 data, local file path, or GCS URI"
     },
     "model": {
       "type": "string",
@@ -184,6 +188,74 @@ Same as `video_generate`, plus:
 |------|---------|-------------|
 | -32602 | Invalid params: image cannot be empty | Empty image provided |
 | -32602 | Invalid params: image file not found | Local image file doesn't exist |
+| -32602 | Invalid params: last_frame_image file not found | Last frame image file doesn't exist (interpolation mode) |
+
+---
+
+### video_extend
+
+Extend an existing video by generating additional frames using Vertex AI Veo.
+
+#### Request Schema
+
+```json
+{
+  "type": "object",
+  "required": ["video_input", "prompt", "output_gcs_uri"],
+  "properties": {
+    "video_input": {
+      "type": "string",
+      "description": "GCS URI of the video to extend",
+      "pattern": "^gs://[a-z0-9][a-z0-9._-]*/.*$"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Text prompt describing the desired continuation"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model to use for generation",
+      "default": "veo-3.0-generate-preview"
+    },
+    "duration_seconds": {
+      "type": "integer",
+      "description": "Duration of the extension in seconds",
+      "default": 8,
+      "enum": [4, 6, 8]
+    },
+    "output_gcs_uri": {
+      "type": "string",
+      "description": "GCS URI for output (required by Veo API)",
+      "pattern": "^gs://[a-z0-9][a-z0-9._-]*/.*$"
+    },
+    "download_local": {
+      "type": "boolean",
+      "description": "Whether to download the video locally after generation",
+      "default": false
+    },
+    "local_path": {
+      "type": "string",
+      "description": "Local path to save the video if download_local is true"
+    },
+    "seed": {
+      "type": "integer",
+      "description": "Random seed for reproducible generation"
+    }
+  }
+}
+```
+
+#### Response
+
+Same as `video_generate`.
+
+#### Errors
+
+Same as `video_generate`, plus:
+
+| Code | Message | Description |
+|------|---------|-------------|
+| -32602 | Invalid params: video_input must start with gs:// | Invalid GCS URI format for input video |
 
 ---
 

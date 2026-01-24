@@ -100,14 +100,21 @@ fn default_duration_seconds() -> u8 {
 /// Image-to-video generation parameters.
 ///
 /// These parameters control the image-to-video generation process via the Vertex AI Veo API.
+/// Supports both single-image I2V and interpolation (first + last frame).
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct VideoI2vParams {
-    /// Source image for video generation.
+    /// Source image for video generation (first frame for interpolation).
     /// Can be base64 data, local file path, or GCS URI.
     pub image: String,
 
     /// Text prompt describing the desired video motion.
     pub prompt: String,
+
+    /// Last frame image for interpolation mode.
+    /// If provided, generates a video interpolating between `image` and `last_frame_image`.
+    /// Can be base64 data, local file path, or GCS URI.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_frame_image: Option<String>,
 
     /// Model to use for generation.
     /// Defaults to "veo-3.0-generate-preview".
@@ -120,6 +127,45 @@ pub struct VideoI2vParams {
     pub aspect_ratio: String,
 
     /// Duration of the video in seconds (5-8 depending on model).
+    #[serde(default = "default_duration_seconds")]
+    pub duration_seconds: u8,
+
+    /// GCS URI for output (required by Veo API).
+    /// Format: gs://bucket/path/to/output.mp4
+    pub output_gcs_uri: String,
+
+    /// Whether to also download the video locally after generation.
+    #[serde(default)]
+    pub download_local: bool,
+
+    /// Local path to save the video if download_local is true.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub local_path: Option<String>,
+
+    /// Random seed for reproducible generation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed: Option<i64>,
+}
+
+/// Video extension parameters.
+///
+/// These parameters control the video extension process via the Vertex AI Veo API.
+/// Extends an existing video by generating additional frames.
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+pub struct VideoExtendParams {
+    /// GCS URI of the video to extend.
+    /// Format: gs://bucket/path/to/input.mp4
+    pub video_input: String,
+
+    /// Text prompt describing the desired continuation.
+    pub prompt: String,
+
+    /// Model to use for generation.
+    /// Defaults to "veo-3.0-generate-preview".
+    #[serde(default = "default_model")]
+    pub model: String,
+
+    /// Duration of the extension in seconds (5-8 depending on model).
     #[serde(default = "default_duration_seconds")]
     pub duration_seconds: u8,
 
@@ -394,6 +440,100 @@ impl VideoI2vParams {
     }
 }
 
+impl VideoExtendParams {
+    /// Validate the parameters against the model constraints.
+    ///
+    /// # Returns
+    /// - `Ok(())` if all parameters are valid
+    /// - `Err(Vec<ValidationError>)` with all validation errors
+    pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
+        let mut errors = Vec::new();
+
+        // Resolve the model to get constraints
+        let model = ModelRegistry::resolve_veo(&self.model);
+
+        // Validate model exists
+        if model.is_none() {
+            errors.push(ValidationError {
+                field: "model".to_string(),
+                message: format!(
+                    "Unknown model '{}'. Valid models: {}",
+                    self.model,
+                    VEO_MODELS
+                        .iter()
+                        .map(|m| m.id)
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+            });
+        }
+
+        // Validate video_input is a valid GCS URI
+        if !self.video_input.starts_with("gs://") {
+            errors.push(ValidationError {
+                field: "video_input".to_string(),
+                message: format!(
+                    "video_input must be a GCS URI starting with 'gs://', got '{}'",
+                    self.video_input
+                ),
+            });
+        }
+
+        // Validate prompt is not empty
+        if self.prompt.trim().is_empty() {
+            errors.push(ValidationError {
+                field: "prompt".to_string(),
+                message: "Prompt cannot be empty".to_string(),
+            });
+        }
+
+        // Validate duration_seconds against model's supported durations
+        if let Some(model) = model {
+            if !model.supported_durations.contains(&self.duration_seconds) {
+                let durations_str: Vec<String> = model.supported_durations.iter().map(|d| d.to_string()).collect();
+                errors.push(ValidationError {
+                    field: "duration_seconds".to_string(),
+                    message: format!(
+                        "duration_seconds must be one of [{}] for model {}, got {}",
+                        durations_str.join(", "), model.id, self.duration_seconds
+                    ),
+                });
+            }
+        } else if !SUPPORTED_DURATIONS.contains(&self.duration_seconds) {
+            let durations_str: Vec<String> = SUPPORTED_DURATIONS.iter().map(|d| d.to_string()).collect();
+            errors.push(ValidationError {
+                field: "duration_seconds".to_string(),
+                message: format!(
+                    "duration_seconds must be one of [{}], got {}",
+                    durations_str.join(", "), self.duration_seconds
+                ),
+            });
+        }
+
+        // Validate output_gcs_uri is a valid GCS URI
+        if !self.output_gcs_uri.starts_with("gs://") {
+            errors.push(ValidationError {
+                field: "output_gcs_uri".to_string(),
+                message: format!(
+                    "output_gcs_uri must be a GCS URI starting with 'gs://', got '{}'",
+                    self.output_gcs_uri
+                ),
+            });
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+
+    /// Get the resolved model definition.
+    pub fn get_model(&self) -> Option<&'static VeoModel> {
+        ModelRegistry::resolve_veo(&self.model)
+    }
+}
+
 /// Video generation handler.
 ///
 /// Handles video generation requests using the Vertex AI Veo API.
@@ -557,10 +697,26 @@ impl VideoHandler {
             Error::validation(format!("Unknown model: {}", params.model))
         })?;
 
-        info!(model_id = model.id, "Generating video with Veo API (image-to-video)");
+        // Determine mode: interpolation or standard I2V
+        let is_interpolation = params.last_frame_image.is_some();
+        if is_interpolation {
+            info!(model_id = model.id, "Generating video with Veo API (interpolation mode)");
+        } else {
+            info!(model_id = model.id, "Generating video with Veo API (image-to-video)");
+        }
 
-        // Resolve the image input
+        // Resolve the image input (first frame)
         let image_data = self.resolve_image_input(&params.image).await?;
+
+        // Resolve last frame if provided (interpolation mode)
+        let last_frame = if let Some(ref last_frame_path) = params.last_frame_image {
+            let last_frame_data = self.resolve_image_input(last_frame_path).await?;
+            Some(VeoImageInput {
+                bytes_base64_encoded: last_frame_data,
+            })
+        } else {
+            None
+        };
 
         // Build the API request
         let request = VeoI2vRequest {
@@ -570,12 +726,13 @@ impl VideoHandler {
                     bytes_base64_encoded: image_data,
                 },
             }],
-            parameters: VeoParameters {
+            parameters: VeoI2vParameters {
                 aspect_ratio: Some(params.aspect_ratio.clone()),
                 storage_uri: params.output_gcs_uri.clone(),
                 duration_seconds: Some(params.duration_seconds),
                 generate_audio: None, // I2V doesn't support audio generation
                 seed: params.seed,
+                last_frame,
             },
         };
 
@@ -615,6 +772,81 @@ impl VideoHandler {
         self.handle_output(result, &params.output_gcs_uri, params.download_local, params.local_path.as_deref()).await
     }
 
+    /// Extend an existing video.
+    ///
+    /// # Arguments
+    /// * `params` - Video extension parameters
+    ///
+    /// # Returns
+    /// * `Ok(VideoGenerateResult)` - Extended video with GCS URI and optional local path
+    /// * `Err(Error)` - If validation fails, API call fails, or output handling fails
+    #[instrument(level = "info", name = "extend_video", skip(self, params), fields(model = %params.model))]
+    pub async fn extend_video(&self, params: VideoExtendParams) -> Result<VideoGenerateResult, Error> {
+        // Validate parameters
+        params.validate().map_err(|errors| {
+            let messages: Vec<String> = errors.iter().map(|e| e.to_string()).collect();
+            Error::validation(messages.join("; "))
+        })?;
+
+        // Resolve the model to get the canonical ID
+        let model = params.get_model().ok_or_else(|| {
+            Error::validation(format!("Unknown model: {}", params.model))
+        })?;
+
+        info!(model_id = model.id, "Extending video with Veo API");
+
+        // Build the API request
+        let request = VeoExtendRequest {
+            instances: vec![VeoExtendInstance {
+                prompt: params.prompt.clone(),
+                video: VeoVideoInput {
+                    gcs_uri: params.video_input.clone(),
+                    mime_type: "video/mp4".to_string(),
+                },
+            }],
+            parameters: VeoExtendParameters {
+                storage_uri: params.output_gcs_uri.clone(),
+                duration_seconds: Some(params.duration_seconds),
+                seed: params.seed,
+            },
+        };
+
+        // Get auth token
+        let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
+
+        // Make API request to start LRO
+        let endpoint = self.get_generate_endpoint(model.id);
+        debug!(endpoint = %endpoint, "Calling Veo API for video extension");
+
+        let response = self.http
+            .post(&endpoint)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json")
+            .json(&request)
+            .send()
+            .await
+            .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::api(&endpoint, status.as_u16(), body));
+        }
+
+        // Parse LRO response
+        let lro_response: LroResponse = response.json().await.map_err(|e| {
+            Error::api(&endpoint, status.as_u16(), format!("Failed to parse LRO response: {}", e))
+        })?;
+
+        info!(operation_name = %lro_response.name, "Started video extension LRO");
+
+        // Poll for completion
+        let result = self.poll_lro(&lro_response.name, model.id).await?;
+
+        // Handle output
+        self.handle_output(result, &params.output_gcs_uri, params.download_local, params.local_path.as_deref()).await
+    }
+
     /// Resolve image input to base64 data.
     ///
     /// Handles three input formats:
@@ -622,27 +854,71 @@ impl VideoHandler {
     /// - Local file path
     /// - GCS URI
     async fn resolve_image_input(&self, image: &str) -> Result<String, Error> {
-        // Check if it's already base64 (simple heuristic: no path separators and no gs://)
-        if !image.contains('/') && !image.starts_with("gs://") && image.len() > 100 {
-            // Likely already base64
-            return Ok(image.to_string());
-        }
-
-        // Check if it's a GCS URI
+        // Check if it's a GCS URI first (explicit protocol)
         if image.starts_with("gs://") {
             let uri = GcsUri::parse(image)?;
             let data = self.gcs.download(&uri).await?;
             return Ok(BASE64.encode(&data));
         }
 
-        // Assume it's a local file path
-        let path = Path::new(image);
-        if !path.exists() {
-            return Err(Error::validation(format!("Image file not found: {}", image)));
+        // Check if it looks like a file path:
+        // - Starts with / (absolute path)
+        // - Starts with ./ or ../ (relative path)
+        // - Contains common path patterns like file extensions with preceding path separators
+        // - Is short enough to be a reasonable path (base64 images are typically very long)
+        let looks_like_path = image.starts_with('/')
+            || image.starts_with("./")
+            || image.starts_with("../")
+            || image.starts_with("~/")
+            || (image.len() < 500 && image.contains('/') && Self::has_file_extension(image));
+
+        if looks_like_path {
+            // Treat as local file path
+            let path = Path::new(image);
+            if !path.exists() {
+                return Err(Error::validation(format!("Image file not found: {}", image)));
+            }
+            let data = tokio::fs::read(path).await?;
+            return Ok(BASE64.encode(&data));
         }
 
-        let data = tokio::fs::read(path).await?;
-        Ok(BASE64.encode(&data))
+        // Try to validate as base64 - if it decodes successfully, it's base64
+        // This handles the case where base64 contains '/' characters
+        if image.len() > 100 {
+            if BASE64.decode(image).is_ok() {
+                return Ok(image.to_string());
+            }
+        }
+
+        // Last resort: try as file path (might be a relative path without ./)
+        let path = Path::new(image);
+        if path.exists() {
+            let data = tokio::fs::read(path).await?;
+            return Ok(BASE64.encode(&data));
+        }
+
+        // If nothing worked and it's long, assume it's base64 (might be malformed)
+        if image.len() > 100 {
+            return Ok(image.to_string());
+        }
+
+        Err(Error::validation(format!(
+            "Image input '{}' is not a valid file path, GCS URI, or base64 data",
+            if image.len() > 50 { &image[..50] } else { image }
+        )))
+    }
+
+    /// Check if a string ends with a common image file extension.
+    fn has_file_extension(s: &str) -> bool {
+        let lower = s.to_lowercase();
+        lower.ends_with(".png")
+            || lower.ends_with(".jpg")
+            || lower.ends_with(".jpeg")
+            || lower.ends_with(".gif")
+            || lower.ends_with(".webp")
+            || lower.ends_with(".bmp")
+            || lower.ends_with(".tiff")
+            || lower.ends_with(".tif")
     }
 
     /// Poll a long-running operation until completion.
@@ -802,7 +1078,7 @@ pub struct VeoI2vRequest {
     /// Input instances (image + prompt)
     pub instances: Vec<VeoI2vInstance>,
     /// Generation parameters
-    pub parameters: VeoParameters,
+    pub parameters: VeoI2vParameters,
 }
 
 /// Veo API instance for image-to-video.
@@ -810,7 +1086,7 @@ pub struct VeoI2vRequest {
 pub struct VeoI2vInstance {
     /// Text prompt describing the desired motion
     pub prompt: String,
-    /// Source image
+    /// Source image (first frame)
     pub image: VeoImageInput,
 }
 
@@ -820,6 +1096,73 @@ pub struct VeoI2vInstance {
 pub struct VeoImageInput {
     /// Base64-encoded image data
     pub bytes_base64_encoded: String,
+}
+
+/// Veo API parameters for I2V (includes last_frame for interpolation).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VeoI2vParameters {
+    /// Aspect ratio
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aspect_ratio: Option<String>,
+    /// GCS URI for output (API expects "storageUri")
+    #[serde(rename = "storageUri")]
+    pub storage_uri: String,
+    /// Duration in seconds
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_seconds: Option<u8>,
+    /// Whether to generate audio (Veo 3.x only)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generate_audio: Option<bool>,
+    /// Random seed for reproducibility
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seed: Option<i64>,
+    /// Last frame for interpolation mode
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_frame: Option<VeoImageInput>,
+}
+
+/// Vertex AI Veo API request for video extension.
+#[derive(Debug, Serialize)]
+pub struct VeoExtendRequest {
+    /// Input instances (video + prompt)
+    pub instances: Vec<VeoExtendInstance>,
+    /// Generation parameters
+    pub parameters: VeoExtendParameters,
+}
+
+/// Veo API instance for video extension.
+#[derive(Debug, Serialize)]
+pub struct VeoExtendInstance {
+    /// Text prompt describing the desired continuation
+    pub prompt: String,
+    /// Source video to extend
+    pub video: VeoVideoInput,
+}
+
+/// Veo video input.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VeoVideoInput {
+    /// GCS URI of the video
+    pub gcs_uri: String,
+    /// MIME type of the video
+    pub mime_type: String,
+}
+
+/// Veo API parameters for video extension.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VeoExtendParameters {
+    /// GCS URI for output (API expects "storageUri")
+    #[serde(rename = "storageUri")]
+    pub storage_uri: String,
+    /// Duration in seconds
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_seconds: Option<u8>,
+    /// Random seed for reproducibility
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seed: Option<i64>,
 }
 
 /// Veo API parameters.
@@ -1185,6 +1528,7 @@ mod tests {
         let params = VideoI2vParams {
             image: "base64imagedata".to_string(),
             prompt: "The cat starts walking".to_string(),
+            last_frame_image: None,
             model: "veo-3".to_string(),
             aspect_ratio: "16:9".to_string(),
             duration_seconds: 6,
@@ -1202,6 +1546,7 @@ mod tests {
         let params = VideoI2vParams {
             image: "   ".to_string(),
             prompt: "The cat starts walking".to_string(),
+            last_frame_image: None,
             model: DEFAULT_MODEL.to_string(),
             aspect_ratio: "16:9".to_string(),
             duration_seconds: 6,
@@ -1247,6 +1592,42 @@ mod tests {
         
         let errors = result.unwrap_err();
         assert!(errors.len() >= 3, "Expected at least 3 validation errors, got {}", errors.len());
+    }
+
+    // Tests for base64 detection (P2 fix)
+    #[test]
+    fn test_has_file_extension_png() {
+        assert!(VideoHandler::has_file_extension("image.png"));
+        assert!(VideoHandler::has_file_extension("path/to/image.PNG"));
+    }
+
+    #[test]
+    fn test_has_file_extension_jpg() {
+        assert!(VideoHandler::has_file_extension("photo.jpg"));
+        assert!(VideoHandler::has_file_extension("photo.jpeg"));
+        assert!(VideoHandler::has_file_extension("photo.JPEG"));
+    }
+
+    #[test]
+    fn test_has_file_extension_other_formats() {
+        assert!(VideoHandler::has_file_extension("image.gif"));
+        assert!(VideoHandler::has_file_extension("image.webp"));
+        assert!(VideoHandler::has_file_extension("image.bmp"));
+        assert!(VideoHandler::has_file_extension("image.tiff"));
+        assert!(VideoHandler::has_file_extension("image.tif"));
+    }
+
+    #[test]
+    fn test_has_file_extension_no_extension() {
+        assert!(!VideoHandler::has_file_extension("noextension"));
+        assert!(!VideoHandler::has_file_extension("path/to/file"));
+    }
+
+    #[test]
+    fn test_has_file_extension_wrong_extension() {
+        assert!(!VideoHandler::has_file_extension("file.txt"));
+        assert!(!VideoHandler::has_file_extension("file.mp4"));
+        assert!(!VideoHandler::has_file_extension("file.pdf"));
     }
 }
 
@@ -1626,12 +2007,13 @@ mod api_tests {
                     bytes_base64_encoded: "base64imagedata".to_string(),
                 },
             }],
-            parameters: VeoParameters {
+            parameters: VeoI2vParameters {
                 aspect_ratio: Some("9:16".to_string()),
                 storage_uri: "gs://bucket/output.mp4".to_string(),
                 duration_seconds: Some(6),
                 generate_audio: None,
                 seed: None,
+                last_frame: None,
             },
         };
 

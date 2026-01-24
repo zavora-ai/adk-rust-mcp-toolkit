@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 4059fc7270f5ce2d1caf7a48488805f05001ea35cfced8276323b075a9098e8a # shrinks to rate = 0.25, text = "A"
+cc f1b22c289d2272274ee20734382af6605523f3c864ad365629ebad8fc1017b0a # shrinks to pitch = -20.0, text = "a"

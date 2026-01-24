@@ -117,6 +117,93 @@ Generate images from text prompts using Vertex AI Imagen.
 | -32602 | Invalid params: number_of_images must be 1-4 | Invalid image count |
 | -32603 | API error | Vertex AI API failure |
 
+---
+
+### image_upscale
+
+Upscale images using Vertex AI Imagen Upscale API (model: `imagen-4.0-upscale-preview`).
+
+#### Request Schema
+
+```json
+{
+  "type": "object",
+  "required": ["image"],
+  "properties": {
+    "image": {
+      "type": "string",
+      "description": "Source image to upscale. Accepts: base64-encoded data, local file path (/path/to/image.png, ./relative/path.png), or GCS URI (gs://bucket/path/image.png)"
+    },
+    "upscale_factor": {
+      "type": "string",
+      "description": "Upscale factor for resolution increase",
+      "default": "x2",
+      "enum": ["x2", "x4"]
+    },
+    "output_file": {
+      "type": "string",
+      "description": "Local file path to save the upscaled image. Parent directories are created automatically."
+    },
+    "output_uri": {
+      "type": "string",
+      "description": "GCS URI to upload the upscaled image (gs://bucket/path/image.png)"
+    }
+  }
+}
+```
+
+#### Response
+
+**Base64 Output** (default):
+
+```json
+{
+  "content": [
+    {
+      "type": "image",
+      "data": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "mimeType": "image/png"
+    }
+  ]
+}
+```
+
+**Local File Output** (when `output_file` specified):
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Upscaled image saved to: /path/to/image.png"
+    }
+  ]
+}
+```
+
+**GCS Output** (when `output_uri` specified):
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Upscaled image uploaded to: gs://bucket/path/image.png"
+    }
+  ]
+}
+```
+
+#### Errors
+
+| Code | Message | Description |
+|------|---------|-------------|
+| -32602 | Invalid params: image cannot be empty | Empty image source provided |
+| -32602 | Invalid params: invalid upscale factor | Unsupported upscale factor (must be x2 or x4) |
+| -32602 | Invalid params: Image file not found | Local file path does not exist |
+| -32602 | Invalid params: Image input is not a valid file path, GCS URI, or base64 data | Unrecognized image input format |
+| -32603 | API error | Vertex AI API failure |
+
 ## Resources
 
 ### image://models

@@ -302,15 +302,8 @@ impl MusicHandler {
                 output_uri.to_string()
             } else {
                 // Add index suffix for multiple samples
-                let path = Path::new(output_uri);
-                let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("audio");
-                let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("wav");
-                let parent = path.parent().and_then(|p| p.to_str()).unwrap_or("");
-                if parent.is_empty() {
-                    format!("{}_{}.{}", stem, i, ext)
-                } else {
-                    format!("{}/{}_{}.{}", parent, stem, i, ext)
-                }
+                // Handle GCS URIs properly - don't use Path which treats gs:// as filesystem path
+                Self::add_index_suffix_to_gcs_uri(output_uri, i, "audio", "wav")
             };
 
             // Parse GCS URI and upload
@@ -321,6 +314,45 @@ impl MusicHandler {
 
         info!(count = uris.len(), "Uploaded audio samples to GCS");
         Ok(MusicGenerateResult::GcsUris(uris))
+    }
+
+    /// Add an index suffix to a GCS URI for multi-output scenarios.
+    fn add_index_suffix_to_gcs_uri(uri: &str, index: usize, default_stem: &str, default_ext: &str) -> String {
+        // For GCS URIs, extract the path portion after gs://bucket/
+        if let Some(stripped) = uri.strip_prefix("gs://") {
+            if let Some(slash_pos) = stripped.find('/') {
+                let bucket = &stripped[..slash_pos];
+                let object_path = &stripped[slash_pos + 1..];
+                
+                // Find the last component (filename)
+                let (dir, filename) = if let Some(last_slash) = object_path.rfind('/') {
+                    (&object_path[..last_slash], &object_path[last_slash + 1..])
+                } else {
+                    ("", object_path)
+                };
+                
+                // Split filename into stem and extension
+                let (stem, ext) = if let Some(dot_pos) = filename.rfind('.') {
+                    (&filename[..dot_pos], &filename[dot_pos + 1..])
+                } else {
+                    (filename, default_ext)
+                };
+                
+                let stem = if stem.is_empty() { default_stem } else { stem };
+                
+                if dir.is_empty() {
+                    format!("gs://{}/{}_{}.{}", bucket, stem, index, ext)
+                } else {
+                    format!("gs://{}/{}/{}_{}.{}", bucket, dir, stem, index, ext)
+                }
+            } else {
+                // Malformed GCS URI (no path after bucket), just append index
+                format!("{}/{}_{}.{}", uri, default_stem, index, default_ext)
+            }
+        } else {
+            // Shouldn't happen since we validate GCS URIs, but handle gracefully
+            format!("{}_{}", uri, index)
+        }
     }
 
     /// Save audio samples to local files.
@@ -352,6 +384,13 @@ impl MusicHandler {
                     format!("{}/{}_{}.{}", parent, stem, i, ext)
                 }
             };
+
+            // Ensure parent directory exists
+            if let Some(parent) = Path::new(&path).parent() {
+                if !parent.as_os_str().is_empty() {
+                    tokio::fs::create_dir_all(parent).await?;
+                }
+            }
 
             // Write to file
             tokio::fs::write(&path, &data).await?;
@@ -584,6 +623,37 @@ mod tests {
         assert_eq!(params.seed, deserialized.seed);
         assert_eq!(params.sample_count, deserialized.sample_count);
         assert_eq!(params.output_file, deserialized.output_file);
+    }
+
+    // Tests for GCS URI handling (P1 fix)
+    #[test]
+    fn test_add_index_suffix_to_gcs_uri_simple() {
+        let uri = "gs://bucket/output.wav";
+        let result = MusicHandler::add_index_suffix_to_gcs_uri(uri, 0, "audio", "wav");
+        assert_eq!(result, "gs://bucket/output_0.wav");
+    }
+
+    #[test]
+    fn test_add_index_suffix_to_gcs_uri_with_path() {
+        let uri = "gs://bucket/path/to/output.wav";
+        let result = MusicHandler::add_index_suffix_to_gcs_uri(uri, 1, "audio", "wav");
+        assert_eq!(result, "gs://bucket/path/to/output_1.wav");
+    }
+
+    #[test]
+    fn test_add_index_suffix_to_gcs_uri_no_extension() {
+        let uri = "gs://bucket/output";
+        let result = MusicHandler::add_index_suffix_to_gcs_uri(uri, 2, "audio", "wav");
+        assert_eq!(result, "gs://bucket/output_2.wav");
+    }
+
+    #[test]
+    fn test_add_index_suffix_preserves_gs_prefix() {
+        // This is the key test for the P1 bug - ensure gs:// is preserved, not mangled to gs:/
+        let uri = "gs://my-bucket/folder/music.wav";
+        let result = MusicHandler::add_index_suffix_to_gcs_uri(uri, 0, "audio", "wav");
+        assert!(result.starts_with("gs://"), "URI should start with gs://, got: {}", result);
+        assert_eq!(result, "gs://my-bucket/folder/music_0.wav");
     }
 }
 

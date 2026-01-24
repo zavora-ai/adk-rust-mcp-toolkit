@@ -3,9 +3,10 @@
 //! This module provides the MCP server handler that exposes:
 //! - `video_generate` tool for text-to-video generation
 //! - `video_from_image` tool for image-to-video generation
+//! - `video_extend` tool for video extension
 //! - Resources for models and providers
 
-use crate::handler::{VideoT2vParams, VideoI2vParams, VideoGenerateResult, VideoHandler};
+use crate::handler::{VideoT2vParams, VideoI2vParams, VideoExtendParams, VideoGenerateResult, VideoHandler};
 use crate::resources;
 use adk_rust_mcp_common::config::Config;
 use adk_rust_mcp_common::error::Error;
@@ -85,6 +86,10 @@ pub struct VideoFromImageToolParams {
     pub image: String,
     /// Text prompt describing the desired video motion
     pub prompt: String,
+    /// Last frame image for interpolation mode (base64 data, local path, or GCS URI).
+    /// If provided, generates a video interpolating between `image` and `last_frame_image`.
+    #[serde(default)]
+    pub last_frame_image: Option<String>,
     /// Model to use for generation (default: veo-3.0-generate-preview)
     #[serde(default)]
     pub model: Option<String>,
@@ -112,8 +117,50 @@ impl From<VideoFromImageToolParams> for VideoI2vParams {
         Self {
             image: params.image,
             prompt: params.prompt,
+            last_frame_image: params.last_frame_image,
             model: params.model.unwrap_or_else(|| crate::handler::DEFAULT_MODEL.to_string()),
             aspect_ratio: params.aspect_ratio.unwrap_or_else(|| crate::handler::DEFAULT_ASPECT_RATIO.to_string()),
+            duration_seconds: params.duration_seconds.unwrap_or(crate::handler::DEFAULT_DURATION_SECONDS),
+            output_gcs_uri: params.output_gcs_uri,
+            download_local: params.download_local.unwrap_or(false),
+            local_path: params.local_path,
+            seed: params.seed,
+        }
+    }
+}
+
+/// Tool parameters wrapper for video_extend (video extension).
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct VideoExtendToolParams {
+    /// GCS URI of the video to extend
+    pub video_input: String,
+    /// Text prompt describing the desired continuation
+    pub prompt: String,
+    /// Model to use for generation (default: veo-3.0-generate-preview)
+    #[serde(default)]
+    pub model: Option<String>,
+    /// Duration in seconds (5-8)
+    #[serde(default)]
+    pub duration_seconds: Option<u8>,
+    /// GCS URI for output (required)
+    pub output_gcs_uri: String,
+    /// Whether to download locally after generation
+    #[serde(default)]
+    pub download_local: Option<bool>,
+    /// Local path for download
+    #[serde(default)]
+    pub local_path: Option<String>,
+    /// Random seed for reproducibility
+    #[serde(default)]
+    pub seed: Option<i64>,
+}
+
+impl From<VideoExtendToolParams> for VideoExtendParams {
+    fn from(params: VideoExtendToolParams) -> Self {
+        Self {
+            video_input: params.video_input,
+            prompt: params.prompt,
+            model: params.model.unwrap_or_else(|| crate::handler::DEFAULT_MODEL.to_string()),
             duration_seconds: params.duration_seconds.unwrap_or(crate::handler::DEFAULT_DURATION_SECONDS),
             output_gcs_uri: params.output_gcs_uri,
             download_local: params.download_local.unwrap_or(false),
@@ -189,6 +236,30 @@ impl VideoServer {
         Ok(CallToolResult::success(content))
     }
 
+    /// Extend an existing video.
+    pub async fn extend_video(&self, params: VideoExtendToolParams) -> Result<CallToolResult, McpError> {
+        info!(prompt = %params.prompt, "Extending video");
+
+        // Ensure handler is initialized
+        self.ensure_handler().await.map_err(|e| {
+            McpError::internal_error(format!("Failed to initialize handler: {}", e), None)
+        })?;
+
+        let handler_guard = self.handler.read().await;
+        let handler = handler_guard.as_ref().ok_or_else(|| {
+            McpError::internal_error("Handler not initialized", None)
+        })?;
+
+        let extend_params: VideoExtendParams = params.into();
+        let result = handler.extend_video(extend_params).await.map_err(|e| {
+            McpError::internal_error(format!("Video extension failed: {}", e), None)
+        })?;
+
+        // Convert result to MCP content
+        let content = self.format_result(&result);
+        Ok(CallToolResult::success(content))
+    }
+
     /// Format the video generation result as MCP content.
     fn format_result(&self, result: &VideoGenerateResult) -> Vec<Content> {
         let mut message = format!("Video generated: {}", result.gcs_uri);
@@ -204,7 +275,8 @@ impl ServerHandler for VideoServer {
         ServerInfo {
             instructions: Some(
                 "Video generation server using Google Vertex AI Veo API. \
-                 Use video_generate for text-to-video and video_from_image for image-to-video."
+                 Use video_generate for text-to-video, video_from_image for image-to-video, \
+                 and video_extend to extend existing videos."
                     .to_string(),
             ),
             capabilities: ServerCapabilities::builder()
@@ -240,6 +312,14 @@ impl ServerHandler for VideoServer {
                 _ => Arc::new(serde_json::Map::new()),
             };
 
+            // video_extend tool
+            let extend_schema = schema_for!(VideoExtendToolParams);
+            let extend_schema_value = serde_json::to_value(&extend_schema).unwrap_or_default();
+            let extend_input_schema = match extend_schema_value {
+                serde_json::Value::Object(map) => Arc::new(map),
+                _ => Arc::new(serde_json::Map::new()),
+            };
+
             Ok(ListToolsResult {
                 tools: vec![
                     Tool {
@@ -260,9 +340,26 @@ impl ServerHandler for VideoServer {
                         description: Some(Cow::Borrowed(
                             "Generate video from an image using Google's Veo API. \
                              Accepts base64 image data, local file path, or GCS URI as input. \
+                             Supports interpolation mode: provide both `image` (first frame) and \
+                             `last_frame_image` (last frame) to generate a video interpolating between them. \
                              Requires a GCS URI for output. Returns the GCS URI of the generated video."
                         )),
                         input_schema: i2v_input_schema,
+                        annotations: None,
+                        icons: None,
+                        meta: None,
+                        output_schema: None,
+                        title: None,
+                    },
+                    Tool {
+                        name: Cow::Borrowed("video_extend"),
+                        description: Some(Cow::Borrowed(
+                            "Extend an existing video using Google's Veo API. \
+                             Takes a GCS URI of an existing video and generates additional frames \
+                             based on the provided prompt. Requires a GCS URI for output. \
+                             Returns the GCS URI of the extended video."
+                        )),
+                        input_schema: extend_input_schema,
                         annotations: None,
                         icons: None,
                         meta: None,
@@ -302,6 +399,16 @@ impl ServerHandler for VideoServer {
                         .ok_or_else(|| McpError::invalid_params("Missing parameters", None))?;
 
                     self.generate_video_from_image(tool_params).await
+                }
+                "video_extend" => {
+                    let tool_params: VideoExtendToolParams = params
+                        .arguments
+                        .map(|args| serde_json::from_value(serde_json::Value::Object(args)))
+                        .transpose()
+                        .map_err(|e| McpError::invalid_params(format!("Invalid parameters: {}", e), None))?
+                        .ok_or_else(|| McpError::invalid_params("Missing parameters", None))?;
+
+                    self.extend_video(tool_params).await
                 }
                 _ => Err(McpError::invalid_params(format!("Unknown tool: {}", params.name), None)),
             }
@@ -451,6 +558,7 @@ mod tests {
         let tool_params = VideoFromImageToolParams {
             image: "base64data".to_string(),
             prompt: "The cat starts walking".to_string(),
+            last_frame_image: None,
             model: Some("veo-3".to_string()),
             aspect_ratio: Some("9:16".to_string()),
             duration_seconds: Some(6),
@@ -473,6 +581,7 @@ mod tests {
         let tool_params = VideoFromImageToolParams {
             image: "base64data".to_string(),
             prompt: "The cat starts walking".to_string(),
+            last_frame_image: None,
             model: None,
             aspect_ratio: None,
             duration_seconds: None,

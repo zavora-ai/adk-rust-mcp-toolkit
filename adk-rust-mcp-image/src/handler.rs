@@ -80,6 +80,73 @@ fn default_number_of_images() -> u8 {
     1
 }
 
+/// Valid upscale factors.
+pub const VALID_UPSCALE_FACTORS: &[&str] = &["x2", "x4"];
+
+/// Default upscale model.
+pub const UPSCALE_MODEL: &str = "imagen-4.0-upscale-preview";
+
+/// Image upscaling parameters.
+///
+/// These parameters control the image upscaling process via the Vertex AI Imagen Upscale API.
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+pub struct ImageUpscaleParams {
+    /// Source image to upscale.
+    /// Can be base64 data, local file path, or GCS URI.
+    pub image: String,
+
+    /// Upscale factor: "x2" or "x4".
+    #[serde(default = "default_upscale_factor")]
+    pub upscale_factor: String,
+
+    /// Output file path for saving the upscaled image locally.
+    /// If not specified and output_uri is not specified, returns base64-encoded data.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_file: Option<String>,
+
+    /// Output storage URI (e.g., gs://bucket/path).
+    /// If specified, uploads the upscaled image to the storage backend.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_uri: Option<String>,
+}
+
+fn default_upscale_factor() -> String {
+    "x2".to_string()
+}
+
+impl ImageUpscaleParams {
+    /// Validate the upscale parameters.
+    pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
+        let mut errors = Vec::new();
+
+        // Validate image is not empty
+        if self.image.trim().is_empty() {
+            errors.push(ValidationError {
+                field: "image".to_string(),
+                message: "Image cannot be empty".to_string(),
+            });
+        }
+
+        // Validate upscale factor
+        if !VALID_UPSCALE_FACTORS.contains(&self.upscale_factor.as_str()) {
+            errors.push(ValidationError {
+                field: "upscale_factor".to_string(),
+                message: format!(
+                    "Invalid upscale factor '{}'. Valid options: {}",
+                    self.upscale_factor,
+                    VALID_UPSCALE_FACTORS.join(", ")
+                ),
+            });
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 /// Validation error details for image generation parameters.
 #[derive(Debug, Clone)]
 pub struct ValidationError {
@@ -378,15 +445,8 @@ impl ImageHandler {
                 output_uri.to_string()
             } else {
                 // Add index suffix for multiple images
-                let path = Path::new(output_uri);
-                let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("image");
-                let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("png");
-                let parent = path.parent().and_then(|p| p.to_str()).unwrap_or("");
-                if parent.is_empty() {
-                    format!("{}_{}.{}", stem, i, ext)
-                } else {
-                    format!("{}/{}_{}.{}", parent, stem, i, ext)
-                }
+                // Handle GCS URIs properly - don't use Path which treats gs:// as filesystem path
+                Self::add_index_suffix_to_uri(output_uri, i, "image", "png")
             };
 
             // Parse GCS URI and upload
@@ -397,6 +457,54 @@ impl ImageHandler {
 
         info!(count = uris.len(), "Uploaded images to storage");
         Ok(ImageGenerateResult::StorageUris(uris))
+    }
+
+    /// Add an index suffix to a URI or path for multi-output scenarios.
+    /// Handles both GCS URIs (gs://bucket/path) and local paths correctly.
+    fn add_index_suffix_to_uri(uri: &str, index: usize, default_stem: &str, default_ext: &str) -> String {
+        // For GCS URIs, extract the path portion after gs://bucket/
+        if let Some(stripped) = uri.strip_prefix("gs://") {
+            if let Some(slash_pos) = stripped.find('/') {
+                let bucket = &stripped[..slash_pos];
+                let object_path = &stripped[slash_pos + 1..];
+                
+                // Find the last component (filename)
+                let (dir, filename) = if let Some(last_slash) = object_path.rfind('/') {
+                    (&object_path[..last_slash], &object_path[last_slash + 1..])
+                } else {
+                    ("", object_path)
+                };
+                
+                // Split filename into stem and extension
+                let (stem, ext) = if let Some(dot_pos) = filename.rfind('.') {
+                    (&filename[..dot_pos], &filename[dot_pos + 1..])
+                } else {
+                    (filename, default_ext)
+                };
+                
+                let stem = if stem.is_empty() { default_stem } else { stem };
+                
+                if dir.is_empty() {
+                    format!("gs://{}/{}_{}.{}", bucket, stem, index, ext)
+                } else {
+                    format!("gs://{}/{}/{}_{}.{}", bucket, dir, stem, index, ext)
+                }
+            } else {
+                // Malformed GCS URI (no path after bucket), just append index
+                format!("{}/{}_{}.{}", uri, default_stem, index, default_ext)
+            }
+        } else {
+            // Local filesystem path - use Path
+            let path = Path::new(uri);
+            let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or(default_stem);
+            let ext = path.extension().and_then(|s| s.to_str()).unwrap_or(default_ext);
+            let parent = path.parent().and_then(|p| p.to_str()).unwrap_or("");
+            if parent.is_empty() {
+                format!("{}_{}.{}", stem, index, ext)
+            } else {
+                format!("{}/{}_{}.{}", parent, stem, index, ext)
+            }
+        }
     }
 
     /// Save images to local files.
@@ -429,6 +537,13 @@ impl ImageHandler {
                 }
             };
 
+            // Ensure parent directory exists
+            if let Some(parent) = Path::new(&path).parent() {
+                if !parent.as_os_str().is_empty() {
+                    tokio::fs::create_dir_all(parent).await?;
+                }
+            }
+
             // Write to file
             tokio::fs::write(&path, &data).await?;
             paths.push(path);
@@ -436,6 +551,184 @@ impl ImageHandler {
 
         info!(count = paths.len(), "Saved images to local files");
         Ok(ImageGenerateResult::LocalFiles(paths))
+    }
+
+    /// Upscale an image using the Imagen Upscale API.
+    ///
+    /// # Arguments
+    /// * `params` - Image upscale parameters
+    ///
+    /// # Returns
+    /// * `Ok(ImageUpscaleResult)` - Upscaled image with data or path
+    /// * `Err(Error)` - If validation fails, API call fails, or output handling fails
+    #[instrument(level = "info", name = "upscale_image", skip(self, params), fields(upscale_factor = %params.upscale_factor))]
+    pub async fn upscale_image(&self, params: ImageUpscaleParams) -> Result<ImageUpscaleResult, Error> {
+        // Validate parameters
+        params.validate().map_err(|errors| {
+            let messages: Vec<String> = errors.iter().map(|e| e.to_string()).collect();
+            Error::validation(messages.join("; "))
+        })?;
+
+        info!(upscale_factor = %params.upscale_factor, "Upscaling image with Imagen Upscale API");
+
+        // Resolve the image input
+        let image_data = self.resolve_image_input(&params.image).await?;
+
+        // Build the API request
+        let request = UpscaleRequest {
+            instances: vec![UpscaleInstance {
+                image: UpscaleImageInput {
+                    bytes_base64_encoded: image_data,
+                },
+            }],
+            parameters: UpscaleParameters {
+                upscale_factor: params.upscale_factor.clone(),
+                output_mime_type: "image/png".to_string(),
+            },
+        };
+
+        // Get auth token
+        let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
+
+        // Make API request
+        let endpoint = self.get_upscale_endpoint();
+        debug!(endpoint = %endpoint, "Calling Imagen Upscale API");
+
+        let response = self.http
+            .post(&endpoint)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json")
+            .json(&request)
+            .send()
+            .await
+            .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::api(&endpoint, status.as_u16(), body));
+        }
+
+        // Parse response
+        let api_response: UpscaleResponse = response.json().await.map_err(|e| {
+            Error::api(&endpoint, status.as_u16(), format!("Failed to parse response: {}", e))
+        })?;
+
+        // Extract upscaled image from response
+        let prediction = api_response.predictions.into_iter().next()
+            .ok_or_else(|| Error::api(&endpoint, 200, "No image returned from API"))?;
+
+        let image_data = prediction.bytes_base64_encoded
+            .ok_or_else(|| Error::api(&endpoint, 200, "No image data in response"))?;
+
+        let image = GeneratedImage {
+            data: image_data,
+            mime_type: prediction.mime_type.unwrap_or_else(|| "image/png".to_string()),
+        };
+
+        info!("Received upscaled image from API");
+
+        // Handle output based on params
+        self.handle_upscale_output(image, &params).await
+    }
+
+    /// Get the Vertex AI Imagen Upscale API endpoint.
+    pub fn get_upscale_endpoint(&self) -> String {
+        format!(
+            "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:predict",
+            self.config.location,
+            self.config.project_id,
+            self.config.location,
+            UPSCALE_MODEL
+        )
+    }
+
+    /// Resolve image input to base64 data.
+    async fn resolve_image_input(&self, image: &str) -> Result<String, Error> {
+        // Check if it's a GCS URI first (explicit protocol)
+        if image.starts_with("gs://") {
+            let uri = GcsUri::parse(image)?;
+            let data = self.gcs.download(&uri).await?;
+            return Ok(BASE64.encode(&data));
+        }
+
+        // Check if it looks like a file path
+        let looks_like_path = image.starts_with('/')
+            || image.starts_with("./")
+            || image.starts_with("../")
+            || image.starts_with("~/")
+            || (image.len() < 500 && image.contains('/'));
+
+        if looks_like_path {
+            let path = Path::new(image);
+            if !path.exists() {
+                return Err(Error::validation(format!("Image file not found: {}", image)));
+            }
+            let data = tokio::fs::read(path).await?;
+            return Ok(BASE64.encode(&data));
+        }
+
+        // Try to validate as base64
+        if image.len() > 100 {
+            if BASE64.decode(image).is_ok() {
+                return Ok(image.to_string());
+            }
+        }
+
+        // Last resort: try as file path
+        let path = Path::new(image);
+        if path.exists() {
+            let data = tokio::fs::read(path).await?;
+            return Ok(BASE64.encode(&data));
+        }
+
+        // If nothing worked and it's long, assume it's base64
+        if image.len() > 100 {
+            return Ok(image.to_string());
+        }
+
+        Err(Error::validation(format!(
+            "Image input is not a valid file path, GCS URI, or base64 data"
+        )))
+    }
+
+    /// Handle output of upscaled image based on params.
+    async fn handle_upscale_output(
+        &self,
+        image: GeneratedImage,
+        params: &ImageUpscaleParams,
+    ) -> Result<ImageUpscaleResult, Error> {
+        // If output_uri is specified, upload to storage
+        if let Some(output_uri) = &params.output_uri {
+            let data = BASE64.decode(&image.data).map_err(|e| {
+                Error::validation(format!("Invalid base64 data: {}", e))
+            })?;
+            let gcs_uri = GcsUri::parse(output_uri)?;
+            self.gcs.upload(&gcs_uri, &data, &image.mime_type).await?;
+            info!(uri = %output_uri, "Uploaded upscaled image to storage");
+            return Ok(ImageUpscaleResult::StorageUri(output_uri.clone()));
+        }
+
+        // If output_file is specified, save to local file
+        if let Some(output_file) = &params.output_file {
+            let data = BASE64.decode(&image.data).map_err(|e| {
+                Error::validation(format!("Invalid base64 data: {}", e))
+            })?;
+
+            // Ensure parent directory exists
+            if let Some(parent) = Path::new(output_file).parent() {
+                if !parent.as_os_str().is_empty() {
+                    tokio::fs::create_dir_all(parent).await?;
+                }
+            }
+
+            tokio::fs::write(output_file, &data).await?;
+            info!(path = %output_file, "Saved upscaled image to local file");
+            return Ok(ImageUpscaleResult::LocalFile(output_file.clone()));
+        }
+
+        // Otherwise, return base64-encoded data
+        Ok(ImageUpscaleResult::Base64(image))
     }
 }
 
@@ -494,6 +787,61 @@ pub struct ImagenPrediction {
 }
 
 // =============================================================================
+// Upscale API Request/Response Types
+// =============================================================================
+
+/// Vertex AI Imagen Upscale API request.
+#[derive(Debug, Serialize)]
+pub struct UpscaleRequest {
+    /// Input instances (images to upscale)
+    pub instances: Vec<UpscaleInstance>,
+    /// Upscale parameters
+    pub parameters: UpscaleParameters,
+}
+
+/// Upscale API instance.
+#[derive(Debug, Serialize)]
+pub struct UpscaleInstance {
+    /// Source image to upscale
+    pub image: UpscaleImageInput,
+}
+
+/// Upscale image input.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpscaleImageInput {
+    /// Base64-encoded image data
+    pub bytes_base64_encoded: String,
+}
+
+/// Upscale API parameters.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpscaleParameters {
+    /// Upscale factor: "x2" or "x4"
+    pub upscale_factor: String,
+    /// Output MIME type
+    pub output_mime_type: String,
+}
+
+/// Vertex AI Imagen Upscale API response.
+#[derive(Debug, Deserialize)]
+pub struct UpscaleResponse {
+    /// Upscaled image predictions
+    pub predictions: Vec<UpscalePrediction>,
+}
+
+/// Upscale API prediction (upscaled image).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpscalePrediction {
+    /// Base64-encoded image data
+    pub bytes_base64_encoded: Option<String>,
+    /// MIME type of the image
+    pub mime_type: Option<String>,
+}
+
+// =============================================================================
 // Result Types
 // =============================================================================
 
@@ -515,6 +863,17 @@ pub enum ImageGenerateResult {
     LocalFiles(Vec<String>),
     /// Storage URIs (when output_uri specified)
     StorageUris(Vec<String>),
+}
+
+/// Result of image upscaling.
+#[derive(Debug)]
+pub enum ImageUpscaleResult {
+    /// Base64-encoded image data (when no output specified)
+    Base64(GeneratedImage),
+    /// Local file path (when output_file specified)
+    LocalFile(String),
+    /// Storage URI (when output_uri specified)
+    StorageUri(String),
 }
 
 #[cfg(test)]
@@ -756,6 +1115,42 @@ mod tests {
         assert_eq!(params.number_of_images, deserialized.number_of_images);
         assert_eq!(params.seed, deserialized.seed);
         assert_eq!(params.output_file, deserialized.output_file);
+    }
+
+    // Tests for GCS URI handling (P1 fix)
+    #[test]
+    fn test_add_index_suffix_to_gcs_uri_simple() {
+        let uri = "gs://bucket/output.png";
+        let result = ImageHandler::add_index_suffix_to_uri(uri, 0, "image", "png");
+        assert_eq!(result, "gs://bucket/output_0.png");
+    }
+
+    #[test]
+    fn test_add_index_suffix_to_gcs_uri_with_path() {
+        let uri = "gs://bucket/path/to/output.png";
+        let result = ImageHandler::add_index_suffix_to_uri(uri, 1, "image", "png");
+        assert_eq!(result, "gs://bucket/path/to/output_1.png");
+    }
+
+    #[test]
+    fn test_add_index_suffix_to_gcs_uri_no_extension() {
+        let uri = "gs://bucket/output";
+        let result = ImageHandler::add_index_suffix_to_uri(uri, 2, "image", "png");
+        assert_eq!(result, "gs://bucket/output_2.png");
+    }
+
+    #[test]
+    fn test_add_index_suffix_to_local_path() {
+        let path = "/tmp/output.png";
+        let result = ImageHandler::add_index_suffix_to_uri(path, 0, "image", "png");
+        assert_eq!(result, "/tmp/output_0.png");
+    }
+
+    #[test]
+    fn test_add_index_suffix_to_local_path_no_dir() {
+        let path = "output.png";
+        let result = ImageHandler::add_index_suffix_to_uri(path, 1, "image", "png");
+        assert_eq!(result, "output_1.png");
     }
 }
 

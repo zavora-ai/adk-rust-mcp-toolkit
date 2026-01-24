@@ -6,5 +6,5 @@ pub mod handler;
 pub mod resources;
 pub mod server;
 
-pub use handler::{VideoT2vParams, VideoI2vParams, VideoGenerateResult, VideoHandler};
+pub use handler::{VideoT2vParams, VideoI2vParams, VideoExtendParams, VideoGenerateResult, VideoHandler};
 pub use server::VideoServer;

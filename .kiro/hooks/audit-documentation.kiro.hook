@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Audit Documentation Completeness",
+  "description": "Manually triggered hook to audit and create missing documentation for all MCP servers",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Audit documentation completeness: 1) List all adk-rust-mcp-* crates 2) Check docs/servers/ and docs/api/ for each server 3) Create missing docs using existing ones as templates 4) Update README files with links to new docs"
+  }
+}

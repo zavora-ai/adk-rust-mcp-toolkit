@@ -1,10 +1,11 @@
 # Image Server (adk-rust-mcp-image)
 
-MCP server for image generation using Google Vertex AI Imagen API.
+MCP server for image generation and processing using Google Vertex AI Imagen API.
 
 ## Features
 
 - Text-to-image generation with Imagen 3.x and 4.x models
+- Image upscaling with Imagen 4.0 Upscale API (x2 and x4 factors)
 - Multiple aspect ratios (1:1, 3:4, 4:3, 9:16, 16:9)
 - Batch generation (1-4 images per request)
 - Output to base64, local files, or GCS
@@ -46,6 +47,33 @@ Generate images from text prompts.
 **Response:**
 
 Returns base64-encoded image data, local file paths, or GCS URIs depending on output parameters.
+
+### image_upscale
+
+Upscale an image using Google's Imagen 4.0 Upscale API.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `image` | string | Yes | - | Source image (base64 data, local file path, or GCS URI) |
+| `upscale_factor` | string | No | `x2` | Upscale factor: `x2` or `x4` |
+| `output_file` | string | No | - | Local file path to save upscaled image |
+| `output_uri` | string | No | - | GCS URI to upload upscaled image (gs://bucket/path) |
+
+**Example:**
+
+```json
+{
+  "image": "/path/to/image.png",
+  "upscale_factor": "x4",
+  "output_file": "/path/to/upscaled.png"
+}
+```
+
+**Response:**
+
+Returns base64-encoded upscaled image data, local file path, or GCS URI depending on output parameters.
 
 ## Resources
 
@@ -133,6 +161,24 @@ mcp call image_generate '{
   "prompt": "Logo design for a tech startup",
   "number_of_images": 4,
   "aspect_ratio": "1:1"
+}'
+```
+
+### Upscale an Image
+
+```bash
+# Upscale from local file
+mcp call image_upscale '{
+  "image": "/tmp/small.png",
+  "upscale_factor": "x4",
+  "output_file": "/tmp/large.png"
+}'
+
+# Upscale from GCS
+mcp call image_upscale '{
+  "image": "gs://my-bucket/images/original.png",
+  "upscale_factor": "x2",
+  "output_uri": "gs://my-bucket/images/upscaled.png"
 }'
 ```
 

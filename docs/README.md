@@ -1,6 +1,6 @@
-# ADK Rust MCP GenMedia
+# ADK Rust MCP Toolkit
 
-A collection of Model Context Protocol (MCP) servers for generative media using Google Cloud Vertex AI APIs.
+A collection of Model Context Protocol (MCP) servers for generative media, built in Rust. Designed to be provider-agnostic with support for multiple AI backends.
 
 ## Overview
 
@@ -8,12 +8,22 @@ This workspace provides MCP servers for:
 
 | Server | Description | Status |
 |--------|-------------|--------|
-| `adk-rust-mcp-image` | Image generation using Vertex AI Imagen | ✅ Complete |
-| `adk-rust-mcp-video` | Video generation using Vertex AI Veo | ✅ Complete |
-| `adk-rust-mcp-music` | Music generation using Vertex AI Lyria | ✅ Complete |
-| `adk-rust-mcp-speech` | Text-to-speech using Cloud TTS Chirp3-HD | ✅ Complete |
-| `adk-rust-mcp-multimodal` | Multimodal generation using Gemini | ✅ Complete |
-| `adk-rust-mcp-avtool` | Audio/video processing using FFmpeg | ✅ Complete |
+| `adk-rust-mcp-image` | Image generation and upscaling | ✅ Complete |
+| `adk-rust-mcp-video` | Video generation (text-to-video, image-to-video) | ✅ Complete |
+| `adk-rust-mcp-music` | Music generation from text prompts | ✅ Complete |
+| `adk-rust-mcp-speech` | Text-to-speech synthesis | ✅ Complete |
+| `adk-rust-mcp-multimodal` | Multimodal generation (image, TTS) | ✅ Complete |
+| `adk-rust-mcp-avtool` | Audio/video processing with FFmpeg | ✅ Complete |
+
+### Supported Providers
+
+Currently implemented:
+- **Google Cloud** - Vertex AI (Imagen, Veo, Lyria), Cloud TTS, Gemini
+
+Planned:
+- AWS Bedrock
+- Azure OpenAI
+- Local/self-hosted models
 
 ## Quick Start
 
@@ -260,7 +270,15 @@ cargo test -p workspace-integration-tests
 
 ## Documentation
 
+### Server Guides
 - [Image Server](./servers/image.md) - Image generation with Imagen
+- [Video Server](./servers/video.md) - Video generation with Veo
+- [Music Server](./servers/music.md) - Music generation with Lyria
+- [Speech Server](./servers/speech.md) - Text-to-speech with Chirp3-HD
+- [Multimodal Server](./servers/multimodal.md) - Multimodal generation with Gemini
+- [AVTool Server](./servers/avtool.md) - Audio/video processing with FFmpeg
+
+### Reference
 - [API Reference](./api/README.md) - Tool and resource schemas
 - [Configuration](./configuration.md) - Environment variables and settings
 - [Development](./development.md) - Contributing and development guide
