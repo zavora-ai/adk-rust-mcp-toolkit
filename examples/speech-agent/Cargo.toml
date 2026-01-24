@@ -1,0 +1,20 @@
+[package]
+name = "speech-agent"
+version = "0.1.0"
+edition = "2024"
+description = "ADK agent for text-to-speech using MCP toolkit"
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+adk-rust = "0.1"
+adk-agent = "0.1"
+adk-core = "0.1"
+adk-model = "0.1"
+adk-tool = "0.1"
+adk-cli = "0.1"
+rmcp = { version = "0.13", features = ["client", "transport-io"] }
+tokio = { version = "1.43", features = ["full"] }
+anyhow = "1.0"
+dotenvy = "0.15"
+async-trait = "0.1"

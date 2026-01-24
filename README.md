@@ -122,6 +122,7 @@ Add to `.kiro/settings/mcp.json`:
 - [API Reference](./docs/api/README.md)
 - [Configuration Guide](./docs/configuration.md)
 - [Development Guide](./docs/development.md)
+- [Examples](./examples/README.md) - ADK agent examples using MCP servers
 
 ## Testing
 
