@@ -213,8 +213,10 @@ impl ServerHandler for SpeechServer {
                 _ => Arc::new(serde_json::Map::new()),
             };
 
-            // speech_list_voices tool (no parameters)
-            let empty_schema = Arc::new(serde_json::Map::new());
+            // speech_list_voices tool (no parameters - must have type: "object")
+            let mut empty_schema_map = serde_json::Map::new();
+            empty_schema_map.insert("type".to_string(), serde_json::Value::String("object".to_string()));
+            let empty_schema = Arc::new(empty_schema_map);
 
             Ok(ListToolsResult {
                 tools: vec![

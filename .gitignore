@@ -17,8 +17,9 @@
 .DS_Store
 Thumbs.db
 
-# Test output
+# Test output directories
 test_output/
+**/test_output/
 
 # Example build artifacts (each example is a standalone crate)
 examples/*/Cargo.lock

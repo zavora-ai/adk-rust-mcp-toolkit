@@ -50,7 +50,7 @@ The music server does not expose any resources.
 
 | Model ID | Description |
 |----------|-------------|
-| `lyria-realtime-singing` | Google's Lyria model for music generation |
+| `lyria-002` | Google's Lyria model for music generation |
 
 ## Usage Examples
 

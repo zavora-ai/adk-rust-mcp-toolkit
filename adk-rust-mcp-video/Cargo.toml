@@ -1,6 +1,7 @@
 [package]
 name = "adk-rust-mcp-video"
 description = "MCP server for video generation using Vertex AI Veo"
+readme = "README.md"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true

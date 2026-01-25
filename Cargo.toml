@@ -21,7 +21,7 @@ exclude = [
 
 [workspace.package]
 edition = "2024"
-version = "0.1.0"
+version = "0.2.2"
 authors = ["James Karanja Maina"]
 license = "Apache-2.0"
 repository = "https://github.com/zavora-ai/adk-rust-mcp-toolkit"

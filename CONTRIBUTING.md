@@ -134,7 +134,7 @@ SKIP_INTEGRATION_TESTS=1 cargo test
 ## Documentation
 
 - Update relevant docs when changing functionality
-- Follow the documentation standards in `.kiro/steering/documentation-maintenance.md`
+- Follow the documentation standards in `docs/documentation-maintenance.md`
 - Server docs go in `docs/servers/`
 - API docs go in `docs/api/`
 

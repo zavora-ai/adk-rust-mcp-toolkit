@@ -1,6 +1,7 @@
 [package]
 name = "adk-rust-mcp-speech"
 description = "MCP server for text-to-speech using Cloud TTS Chirp3-HD"
+readme = "README.md"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true

@@ -119,10 +119,93 @@ Add to `.kiro/settings/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "image-gen": {
+    "adk-image": {
       "command": "/path/to/adk-rust-mcp-image",
+      "args": ["--transport", "stdio"],
+      "cwd": "/path/to/workspace",
       "env": {
-        "PROJECT_ID": "your-project-id"
+        "PROJECT_ID": "your-project-id",
+        "LOCATION": "us-central1",
+        "GCS_BUCKET": "your-bucket-name",
+        "RUST_LOG": "info"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+**Important:** The `cwd` (current working directory) field is required for file output operations with relative paths. Without it, the server may run from a read-only directory (like `/` on macOS) and fail to save files.
+
+### Complete Kiro Configuration Example
+
+Here's a complete configuration for all servers:
+
+```json
+{
+  "mcpServers": {
+    "adk-image": {
+      "command": "/path/to/target/release/adk-rust-mcp-image",
+      "args": ["--transport", "stdio"],
+      "cwd": "/path/to/workspace",
+      "env": {
+        "PROJECT_ID": "your-project-id",
+        "LOCATION": "us-central1",
+        "GCS_BUCKET": "your-bucket-name",
+        "RUST_LOG": "info"
+      }
+    },
+    "adk-video": {
+      "command": "/path/to/target/release/adk-rust-mcp-video",
+      "args": ["--transport", "stdio"],
+      "cwd": "/path/to/workspace",
+      "env": {
+        "PROJECT_ID": "your-project-id",
+        "LOCATION": "us-central1",
+        "GCS_BUCKET": "your-bucket-name",
+        "RUST_LOG": "info"
+      }
+    },
+    "adk-music": {
+      "command": "/path/to/target/release/adk-rust-mcp-music",
+      "args": ["--transport", "stdio"],
+      "cwd": "/path/to/workspace",
+      "env": {
+        "PROJECT_ID": "your-project-id",
+        "LOCATION": "us-central1",
+        "GCS_BUCKET": "your-bucket-name",
+        "RUST_LOG": "info"
+      }
+    },
+    "adk-speech": {
+      "command": "/path/to/target/release/adk-rust-mcp-speech",
+      "args": ["--transport", "stdio"],
+      "cwd": "/path/to/workspace",
+      "env": {
+        "PROJECT_ID": "your-project-id",
+        "LOCATION": "us-central1",
+        "RUST_LOG": "info"
+      }
+    },
+    "adk-multimodal": {
+      "command": "/path/to/target/release/adk-rust-mcp-multimodal",
+      "args": ["--transport", "stdio"],
+      "cwd": "/path/to/workspace",
+      "env": {
+        "PROJECT_ID": "your-project-id",
+        "LOCATION": "us-central1",
+        "RUST_LOG": "info"
+      }
+    },
+    "adk-avtool": {
+      "command": "/path/to/target/release/adk-rust-mcp-avtool",
+      "args": ["--transport", "stdio"],
+      "cwd": "/path/to/workspace",
+      "env": {
+        "PROJECT_ID": "your-project-id",
+        "LOCATION": "us-central1",
+        "RUST_LOG": "info"
       }
     }
   }

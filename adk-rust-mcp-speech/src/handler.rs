@@ -339,6 +339,7 @@ impl SpeechHandler {
             .post(&endpoint)
             .header("Authorization", format!("Bearer {}", token))
             .header("Content-Type", "application/json")
+            .header("x-goog-user-project", &self.config.project_id)
             .json(&request)
             .send()
             .await
@@ -399,6 +400,7 @@ impl SpeechHandler {
             .http
             .get(&endpoint)
             .header("Authorization", format!("Bearer {}", token))
+            .header("x-goog-user-project", &self.config.project_id)
             .send()
             .await
             .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;

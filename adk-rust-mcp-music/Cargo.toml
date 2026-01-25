@@ -1,6 +1,7 @@
 [package]
 name = "adk-rust-mcp-music"
 description = "MCP server for music generation using Vertex AI Lyria"
+readme = "README.md"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true

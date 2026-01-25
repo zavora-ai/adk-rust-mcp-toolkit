@@ -7,13 +7,11 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
-# Use local adk-rust crates for latest MCP features
-adk-agent = { path = "../../../adk-rust/adk-agent" }
-adk-core = { path = "../../../adk-rust/adk-core" }
-adk-model = { path = "../../../adk-rust/adk-model" }
-adk-tool = { path = "../../../adk-rust/adk-tool", features = ["http-transport"] }
-adk-cli = { path = "../../../adk-rust/adk-cli" }
+# ADK-Rust crates from crates.io
+adk-rust = { version = "0.2", features = ["full"] }
+rmcp = { version = "0.14", features = ["client", "transport-streamable-http-client"] }
 tokio = { version = "1.43", features = ["full"] }
 anyhow = "1.0"
 dotenvy = "0.15"
 async-trait = "0.1"
+serde_json = "1.0"

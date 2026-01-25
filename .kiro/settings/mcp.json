@@ -2,20 +2,96 @@
   "mcpServers": {
     "aws-docs": {
       "command": "uvx",
-      "args": [
-        "awslabs.aws-documentation-mcp-server@latest"
-      ],
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR"
       },
       "disabled": false,
       "autoApprove": []
-    }
-  },
-  "playwright": {
+    },
+    "playwright": {
       "command": "npx",
       "args": ["@playwright/mcp@latest"],
       "disabled": false,
       "autoApprove": []
+    },
+    "adk-image": {
+      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-image",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "env": {
+        "PROJECT_ID": "zavora-ai",
+        "LOCATION": "us-central1",
+        "GCS_BUCKET": "gemini-image-test-bucket",
+        "RUST_LOG": "info"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "adk-video": {
+      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-video",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "env": {
+        "PROJECT_ID": "zavora-ai",
+        "LOCATION": "us-central1",
+        "GCS_BUCKET": "gemini-image-test-bucket",
+        "RUST_LOG": "info"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "adk-music": {
+      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-music",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "env": {
+        "PROJECT_ID": "zavora-ai",
+        "LOCATION": "us-central1",
+        "GCS_BUCKET": "gemini-image-test-bucket",
+        "RUST_LOG": "info"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "adk-speech": {
+      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-speech",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "env": {
+        "PROJECT_ID": "zavora-ai",
+        "LOCATION": "us-central1",
+        "GCS_BUCKET": "gemini-image-test-bucket",
+        "RUST_LOG": "info"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "adk-multimodal": {
+      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-multimodal",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "env": {
+        "PROJECT_ID": "zavora-ai",
+        "LOCATION": "us-central1",
+        "GCS_BUCKET": "gemini-image-test-bucket",
+        "RUST_LOG": "info"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "adk-avtool": {
+      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-avtool",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "env": {
+        "PROJECT_ID": "zavora-ai",
+        "LOCATION": "us-central1",
+        "GCS_BUCKET": "gemini-image-test-bucket",
+        "RUST_LOG": "info"
+      },
+      "disabled": false,
+      "autoApprove": []
     }
+  }
 }

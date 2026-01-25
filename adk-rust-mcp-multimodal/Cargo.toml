@@ -1,6 +1,7 @@
 [package]
 name = "adk-rust-mcp-multimodal"
 description = "MCP server for multimodal generation using Gemini API"
+readme = "README.md"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true

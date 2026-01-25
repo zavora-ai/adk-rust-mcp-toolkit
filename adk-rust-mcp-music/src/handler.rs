@@ -180,7 +180,7 @@ impl MusicHandler {
             self.config.location,
             self.config.project_id,
             self.config.location,
-            "lyria-realtime-singing"
+            "lyria-002"
         )
     }
 
@@ -236,9 +236,16 @@ impl MusicHandler {
             return Err(Error::api(&endpoint, status.as_u16(), body));
         }
 
+        // Get raw response for debugging
+        let response_text = response.text().await.map_err(|e| {
+            Error::api(&endpoint, status.as_u16(), format!("Failed to read response: {}", e))
+        })?;
+        
+        debug!(response = %response_text.chars().take(500).collect::<String>(), "Raw Lyria API response");
+
         // Parse response
-        let api_response: LyriaResponse = response.json().await.map_err(|e| {
-            Error::api(&endpoint, status.as_u16(), format!("Failed to parse response: {}", e))
+        let api_response: LyriaResponse = serde_json::from_str(&response_text).map_err(|e| {
+            Error::api(&endpoint, status.as_u16(), format!("Failed to parse response: {}. Raw: {}", e, &response_text[..response_text.len().min(500)]))
         })?;
 
         // Extract audio samples from response
