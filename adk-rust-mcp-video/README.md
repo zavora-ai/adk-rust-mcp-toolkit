@@ -129,8 +129,8 @@ Extend an existing video.
 
 ## Example Output
 
-<video src="../test_output/video_test.mp4" width="640" controls>
-  <a href="../test_output/video_test.mp4">Download video sample</a>
+<video src="../docs/assets/video_test.mp4" width="640" controls>
+  <a href="../docs/assets/video_test.mp4">Download video sample</a>
 </video>
 
 ## Supported Models (Google Veo)

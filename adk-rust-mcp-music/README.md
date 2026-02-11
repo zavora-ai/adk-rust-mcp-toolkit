@@ -115,11 +115,11 @@ Generate instrumental music from text prompts.
 
 ## Example Output
 
-<audio controls src="../test_output/music_test.mp3">
-  <a href="../test_output/music_test.mp3">Download music sample (MP3)</a>
+<audio controls src="../docs/assets/music_test.mp3">
+  <a href="../docs/assets/music_test.mp3">Download music sample (MP3)</a>
 </audio>
 
-[Download WAV](../test_output/music_test.wav) · [Download MP3](../test_output/music_test.mp3)
+[Download WAV](../docs/assets/music_test.wav) · [Download MP3](../docs/assets/music_test.mp3)
 
 ## License
 

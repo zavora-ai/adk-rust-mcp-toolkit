@@ -23,8 +23,8 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 <td align="center"><strong>Multimodal</strong></td>
 </tr>
 <tr>
-<td><img src="test_output/cat_rain.png" width="300" alt="Generated cat in rain"/></td>
-<td><img src="test_output/multimodal_test.png" width="300" alt="Multimodal generation"/></td>
+<td><img src="docs/assets/cat_rain.png" width="300" alt="Generated cat in rain"/></td>
+<td><img src="docs/assets/multimodal_test.png" width="300" alt="Multimodal generation"/></td>
 </tr>
 </table>
 
@@ -32,18 +32,18 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 https://github.com/user-attachments/assets/video_test.mp4
 
-<video src="test_output/video_test.mp4" width="640" controls></video>
+<video src="docs/assets/video_test.mp4" width="640" controls></video>
 
 ### 🎵 Music Generation
 
-<audio controls src="test_output/music_test.mp3">
-  <a href="test_output/music_test.mp3">Download music sample</a>
+<audio controls src="docs/assets/music_test.mp3">
+  <a href="docs/assets/music_test.mp3">Download music sample</a>
 </audio>
 
 ### 🗣️ Speech Synthesis
 
-<audio controls src="test_output/speech_test.wav">
-  <a href="test_output/speech_test.wav">Download speech sample</a>
+<audio controls src="docs/assets/speech_test.wav">
+  <a href="docs/assets/speech_test.wav">Download speech sample</a>
 </audio>
 
 ## Servers

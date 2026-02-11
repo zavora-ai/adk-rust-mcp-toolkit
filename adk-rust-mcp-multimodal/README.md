@@ -105,7 +105,7 @@ neutral, cheerful, sad, angry, fearful, surprised, calm
 
 ## Example Output
 
-<img src="../test_output/multimodal_test.png" width="512" alt="Multimodal image generation"/>
+<img src="../docs/assets/multimodal_test.png" width="512" alt="Multimodal image generation"/>
 
 ## License
 

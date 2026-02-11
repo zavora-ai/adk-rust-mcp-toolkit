@@ -115,7 +115,7 @@ Upscale images to higher resolution.
 
 Generated with prompt: *"A cat sitting in the rain, watercolor style"*
 
-<img src="../test_output/cat_rain.png" width="512" alt="Cat in Rain - Watercolor Style"/>
+<img src="../docs/assets/cat_rain.png" width="512" alt="Cat in Rain - Watercolor Style"/>
 
 ## License
 

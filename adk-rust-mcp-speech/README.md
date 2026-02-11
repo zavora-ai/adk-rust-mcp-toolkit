@@ -63,11 +63,11 @@ List available voices.
 
 ## Example Output
 
-<audio controls src="../test_output/speech_test.wav">
-  <a href="../test_output/speech_test.wav">Download speech sample</a>
+<audio controls src="../docs/assets/speech_test.wav">
+  <a href="../docs/assets/speech_test.wav">Download speech sample</a>
 </audio>
 
-[Download WAV](../test_output/speech_test.wav)
+[Download WAV](../docs/assets/speech_test.wav)
 
 ## License
 

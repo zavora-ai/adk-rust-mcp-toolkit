@@ -24,6 +24,8 @@ test_output/
 
 # Generated media files
 *.mp4
+# But allow committed assets
+!docs/assets/*.mp4
 
 # Standalone crate lock files
 adk-rust-mcp-common/Cargo.lock
