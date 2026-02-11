@@ -103,6 +103,10 @@ neutral, cheerful, sad, angry, fearful, surprised, calm
 | TTS | Gemini (style control) | - | Cloud TTS (more voices) |
 | Best For | Quick prototyping | Production images | Production TTS |
 
+## Example Output
+
+<img src="../test_output/multimodal_test.png" width="512" alt="Multimodal image generation"/>
+
 ## License
 
 Apache-2.0

@@ -3,6 +3,8 @@
 //! Shared utilities for configuration, GCS operations, model definitions,
 //! authentication, error handling, and tracing across all MCP GenMedia servers.
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 pub mod auth;
 pub mod config;
 pub mod error;
@@ -13,6 +15,7 @@ pub mod tracing;
 pub mod transport;
 
 #[cfg(feature = "otel")]
+#[cfg_attr(docsrs, doc(cfg(feature = "otel")))]
 pub mod otel;
 
 #[cfg(test)]

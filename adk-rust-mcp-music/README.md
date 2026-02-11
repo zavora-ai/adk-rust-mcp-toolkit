@@ -113,6 +113,14 @@ Generate instrumental music from text prompts.
 - Exclude vocals: `"negative_prompt": "vocals, singing"`
 - Exclude instruments: `"negative_prompt": "drums, percussion"`
 
+## Example Output
+
+<audio controls src="../test_output/music_test.mp3">
+  <a href="../test_output/music_test.mp3">Download music sample (MP3)</a>
+</audio>
+
+[Download WAV](../test_output/music_test.wav) · [Download MP3](../test_output/music_test.mp3)
+
 ## License
 
 Apache-2.0

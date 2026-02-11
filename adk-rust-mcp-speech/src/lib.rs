@@ -2,6 +2,8 @@
 //!
 //! This library provides text-to-speech capabilities using Google Cloud TTS Chirp3-HD API.
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 pub mod handler;
 pub mod server;
 

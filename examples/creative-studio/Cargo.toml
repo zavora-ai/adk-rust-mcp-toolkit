@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 # ADK-Rust crates from crates.io
-adk-rust = { version = "0.2", features = ["full"] }
+adk-rust = { version = "0.3", features = ["full"] }
 rmcp = { version = "0.14", features = ["client", "transport-streamable-http-client"] }
 tokio = { version = "1.43", features = ["full"] }
 anyhow = "1.0"

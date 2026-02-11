@@ -2,41 +2,51 @@
 name = "adk-rust-mcp-common"
 description = "Shared utilities for ADK Rust MCP GenMedia servers"
 readme = "README.md"
-edition.workspace = true
-version.workspace = true
-authors.workspace = true
-license.workspace = true
+documentation = "https://docs.rs/adk-rust-mcp-common"
+edition = "2024"
+version = "0.3.0"
+authors = ["James Karanja Maina"]
+license = "Apache-2.0"
+repository = "https://github.com/zavora-ai/adk-rust-mcp-toolkit"
+keywords = ["mcp", "ai", "generative-media", "vertex-ai", "google-cloud"]
+categories = ["multimedia", "api-bindings", "development-tools"]
+rust-version = "1.85"
+homepage = "https://www.zavora.ai"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = []
 otel = ["opentelemetry", "opentelemetry_sdk", "opentelemetry-gcloud-trace", "tracing-opentelemetry"]
 
 [dependencies]
-tokio.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-thiserror.workspace = true
-anyhow.workspace = true
-reqwest.workspace = true
-tracing.workspace = true
-tracing-subscriber.workspace = true
-dotenvy.workspace = true
-async-trait.workspace = true
-base64.workspace = true
+tokio = { version = "1.43", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+anyhow = "1.0"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenvy = "0.15"
+async-trait = "0.1"
+base64 = "0.22"
 urlencoding = "2.1"
 gcp_auth = "0.12"
-clap.workspace = true
-rmcp.workspace = true
-axum.workspace = true
+clap = { version = "4.5", features = ["derive", "env"] }
+rmcp = { version = "0.14", features = ["server", "transport-io", "transport-streamable-http-server"] }
+axum = "0.8"
 
 # OpenTelemetry dependencies (optional)
-opentelemetry = { workspace = true, optional = true }
-opentelemetry_sdk = { workspace = true, optional = true }
-opentelemetry-gcloud-trace = { workspace = true, optional = true }
-tracing-opentelemetry = { workspace = true, optional = true }
+opentelemetry = { version = "0.30", optional = true }
+opentelemetry_sdk = { version = "0.30", features = ["rt-tokio"], optional = true }
+opentelemetry-gcloud-trace = { version = "0.21", optional = true }
+tracing-opentelemetry = { version = "0.31", optional = true }
 
 [dev-dependencies]
-proptest.workspace = true
+proptest = "1.5"
 tempfile = "3.24"
 wiremock = "0.6"
 tokio-test = "0.4"

@@ -17,9 +17,16 @@
 .DS_Store
 Thumbs.db
 
+
 # Test output directories
 test_output/
 **/test_output/
+
+# Generated media files
+*.mp4
+
+# Standalone crate lock files
+adk-rust-mcp-common/Cargo.lock
 
 # Example build artifacts (each example is a standalone crate)
 examples/*/Cargo.lock

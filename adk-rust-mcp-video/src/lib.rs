@@ -2,6 +2,8 @@
 //!
 //! This library provides video generation capabilities using Vertex AI Veo API.
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 pub mod handler;
 pub mod resources;
 pub mod server;

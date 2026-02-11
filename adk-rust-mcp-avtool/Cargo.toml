@@ -2,10 +2,19 @@
 name = "adk-rust-mcp-avtool"
 description = "MCP server for audio/video processing using FFmpeg"
 readme = "README.md"
+documentation = "https://docs.rs/adk-rust-mcp-avtool"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true
 license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
 name = "adk_rust_mcp_avtool"

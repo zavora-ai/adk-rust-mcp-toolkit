@@ -111,6 +111,12 @@ Upscale images to higher resolution.
 - `image://models` - List available models
 - `image://providers` - List providers
 
+## Example Output
+
+Generated with prompt: *"A cat sitting in the rain, watercolor style"*
+
+<img src="../test_output/cat_rain.png" width="512" alt="Cat in Rain - Watercolor Style"/>
+
 ## License
 
 Apache-2.0

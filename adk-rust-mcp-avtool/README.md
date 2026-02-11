@@ -145,6 +145,14 @@ All tools support GCS URIs:
 
 **Image:** PNG, JPEG, GIF
 
+## Example Output
+
+Converted from WAV to MP3 using `ffmpeg_convert_audio_wav_to_mp3`:
+
+<audio controls src="../test_output/music_test.mp3">
+  <a href="../test_output/music_test.mp3">Download converted MP3</a>
+</audio>
+
 ## License
 
 Apache-2.0

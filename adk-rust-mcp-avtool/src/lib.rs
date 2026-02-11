@@ -12,6 +12,8 @@
 //! - `ffmpeg_adjust_volume` - Adjust audio volume
 //! - `ffmpeg_layer_audio_files` - Layer/mix multiple audio files
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 pub mod handler;
 pub mod server;
 

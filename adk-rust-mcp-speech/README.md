@@ -61,6 +61,14 @@ adk-rust-mcp-speech --transport http --port 8080
 
 List available voices.
 
+## Example Output
+
+<audio controls src="../test_output/speech_test.wav">
+  <a href="../test_output/speech_test.wav">Download speech sample</a>
+</audio>
+
+[Download WAV](../test_output/speech_test.wav)
+
 ## License
 
 Apache-2.0

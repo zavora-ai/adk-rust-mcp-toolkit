@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-    "adk-rust-mcp-common",
     "adk-rust-mcp-image",
     "adk-rust-mcp-video",
     "adk-rust-mcp-music",
@@ -11,6 +10,7 @@ members = [
     "tests/workspace_integration",
 ]
 exclude = [
+    "adk-rust-mcp-common",
     "examples/image-agent",
     "examples/video-agent",
     "examples/music-agent",
@@ -21,10 +21,14 @@ exclude = [
 
 [workspace.package]
 edition = "2024"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["James Karanja Maina"]
+homepage = "https://www.zavora.ai"
 license = "Apache-2.0"
 repository = "https://github.com/zavora-ai/adk-rust-mcp-toolkit"
+rust-version = "1.85"
+keywords = ["mcp", "ai", "generative-media", "vertex-ai", "google-cloud"]
+categories = ["multimedia", "api-bindings", "development-tools"]
 
 [workspace.dependencies]
 # Async runtime
@@ -79,4 +83,4 @@ clap = { version = "4.5", features = ["derive", "env"] }
 axum = "0.8"
 
 # Internal crates
-adk-rust-mcp-common = { path = "adk-rust-mcp-common" }
+adk-rust-mcp-common = "0.3.0"

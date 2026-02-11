@@ -2,10 +2,19 @@
 name = "adk-rust-mcp-multimodal"
 description = "MCP server for multimodal generation using Gemini API"
 readme = "README.md"
+documentation = "https://docs.rs/adk-rust-mcp-multimodal"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true
 license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
 name = "adk_rust_mcp_multimodal"

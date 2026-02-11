@@ -2,6 +2,8 @@
 //!
 //! This library provides music generation capabilities using Vertex AI Lyria API.
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 pub mod handler;
 pub mod server;
 

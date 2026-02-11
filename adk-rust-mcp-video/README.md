@@ -127,6 +127,12 @@ Extend an existing video.
 - `video://models` - List available models
 - `video://providers` - List providers
 
+## Example Output
+
+<video src="../test_output/video_test.mp4" width="640" controls>
+  <a href="../test_output/video_test.mp4">Download video sample</a>
+</video>
+
 ## Supported Models (Google Veo)
 
 | Model | Aliases | Audio | Durations |
