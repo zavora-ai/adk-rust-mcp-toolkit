@@ -91,7 +91,8 @@ impl RealtimeSession {
                 match msg_result {
                     Ok(Message::Text(text)) => {
                         // Parse for audio chunks
-                        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
+                        let s = text.to_string();
+                        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&s) {
                             if let Some(data) = val.pointer("/serverContent/audioChunks/0/data")
                                 .and_then(|d| d.as_str())
                             {
@@ -99,10 +100,28 @@ impl RealtimeSession {
                                     buf_clone.lock().await.extend_from_slice(&bytes);
                                 }
                             }
+                        } else {
+                            // If JSON parse fails, store raw for debugging
+                            error!("Failed to parse audio message");
                         }
                     }
                     Ok(Message::Binary(data)) => {
-                        buf_clone.lock().await.extend_from_slice(&data);
+                        // Server may send JSON as binary frames
+                        if let Ok(s) = std::str::from_utf8(&data) {
+                            if let Ok(val) = serde_json::from_str::<serde_json::Value>(s) {
+                                if let Some(audio_data) = val.pointer("/serverContent/audioChunks/0/data")
+                                    .and_then(|d| d.as_str())
+                                {
+                                    if let Ok(bytes) = BASE64.decode(audio_data) {
+                                        buf_clone.lock().await.extend_from_slice(&bytes);
+                                    }
+                                }
+                            } else {
+                                buf_clone.lock().await.extend_from_slice(&data);
+                            }
+                        } else {
+                            buf_clone.lock().await.extend_from_slice(&data);
+                        }
                     }
                     Ok(Message::Close(_)) => {
                         info!("WebSocket closed by server");
