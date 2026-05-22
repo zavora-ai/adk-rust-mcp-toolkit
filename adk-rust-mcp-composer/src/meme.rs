@@ -33,14 +33,26 @@ pub async fn generate(config: &Config, params: MemeGenerateParams) -> Result<Str
     let api_key = config.gemini_api_key.as_deref().ok_or("GEMINI_API_KEY required")?;
     let output_path = params.output_file.clone().unwrap_or_else(|| "meme.png".to_string());
 
-    // Step 1: Generate image with Gemini
-    info!(prompt = %params.prompt, "Generating meme image");
+    // Build prompt that includes meme text instructions
+    let mut prompt = format!("Generate a meme image of: {}", params.prompt);
+    if let Some(ref top) = params.top_text {
+        prompt.push_str(&format!(". Add bold white text with black outline at the TOP of the image saying: \"{}\"", top));
+    }
+    if let Some(ref bottom) = params.bottom_text {
+        prompt.push_str(&format!(". Add bold white text with black outline at the BOTTOM of the image saying: \"{}\"", bottom));
+    }
+    if params.top_text.is_some() || params.bottom_text.is_some() {
+        prompt.push_str(". Use classic meme style Impact font.");
+    }
+
+    // Generate image with Gemini (text baked in)
+    info!(prompt = %prompt, "Generating meme");
     let model = "gemini-2.5-flash-image";
     let url = format!("{}/models/{}:generateContent", config.gemini_base_url(), model);
 
     let client = reqwest::Client::new();
     let body = serde_json::json!({
-        "contents": [{"parts": [{"text": format!("Generate a meme image of: {}", params.prompt)}]}],
+        "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "responseModalities": ["IMAGE", "TEXT"],
             "imageConfig": {"aspectRatio": "1:1"}
@@ -65,46 +77,10 @@ pub async fn generate(config: &Config, params: MemeGenerateParams) -> Result<Str
 
     let image_bytes = BASE64.decode(image_data).map_err(|e| e.to_string())?;
 
-    // Step 2: Add text overlay if provided
-    if params.top_text.is_some() || params.bottom_text.is_some() {
-        let tmp = TempDir::new().map_err(|e| e.to_string())?;
-        let raw_path = tmp.path().join("raw.png");
-        tokio::fs::write(&raw_path, &image_bytes).await.map_err(|e| e.to_string())?;
-
-        if let Some(parent) = Path::new(&output_path).parent() {
-            if !parent.as_os_str().is_empty() { tokio::fs::create_dir_all(parent).await.ok(); }
-        }
-
-        let mut filters = Vec::new();
-        let fs = params.font_size;
-
-        if let Some(ref top) = params.top_text {
-            filters.push(format!(
-                "drawtext=text='{}':fontsize={}:fontcolor=white:borderw=4:bordercolor=black:x=(w-text_w)/2:y=20",
-                top.replace('\'', "'\\''"), fs
-            ));
-        }
-        if let Some(ref bottom) = params.bottom_text {
-            filters.push(format!(
-                "drawtext=text='{}':fontsize={}:fontcolor=white:borderw=4:bordercolor=black:x=(w-text_w)/2:y=h-th-20",
-                bottom.replace('\'', "'\\''"), fs
-            ));
-        }
-
-        let filter_str = filters.join(",");
-        let output = Command::new("ffmpeg")
-            .args(["-y", "-i", raw_path.to_str().unwrap(), "-vf", &filter_str, &output_path])
-            .output().await.map_err(|e| e.to_string())?;
-
-        if !output.status.success() {
-            return Err(format!("FFmpeg error: {}", String::from_utf8_lossy(&output.stderr)));
-        }
-    } else {
-        if let Some(parent) = Path::new(&output_path).parent() {
-            if !parent.as_os_str().is_empty() { tokio::fs::create_dir_all(parent).await.ok(); }
-        }
-        tokio::fs::write(&output_path, &image_bytes).await.map_err(|e| e.to_string())?;
+    if let Some(parent) = Path::new(&output_path).parent() {
+        if !parent.as_os_str().is_empty() { tokio::fs::create_dir_all(parent).await.ok(); }
     }
+    tokio::fs::write(&output_path, &image_bytes).await.map_err(|e| e.to_string())?;
 
     info!(path = %output_path, "Meme generated");
     Ok(format!("Meme saved to: {}", output_path))
