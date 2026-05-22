@@ -10,6 +10,8 @@ members = [
     "adk-rust-mcp-composer",
     "adk-rust-mcp-education",
     "adk-rust-mcp-diagrams",
+    "adk-rust-mcp-artist",
+    "adk-rust-mcp-graphics",
     "tests/workspace_integration",
 ]
 exclude = [

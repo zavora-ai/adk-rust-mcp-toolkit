@@ -3,6 +3,27 @@
 version = 4
 
 [[package]]
+name = "adk-rust-mcp-artist"
+version = "0.4.0"
+dependencies = [
+ "adk-rust-mcp-common",
+ "anyhow",
+ "base64",
+ "clap",
+ "dotenvy",
+ "reqwest",
+ "rmcp",
+ "schemars 0.8.22",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "adk-rust-mcp-avtool"
 version = "0.4.0"
 dependencies = [
@@ -117,6 +138,27 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "adk-rust-mcp-graphics"
+version = "0.4.0"
+dependencies = [
+ "adk-rust-mcp-common",
+ "anyhow",
+ "base64",
+ "clap",
+ "dotenvy",
+ "reqwest",
+ "rmcp",
+ "schemars 0.8.22",
+ "serde",
+ "serde_json",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
