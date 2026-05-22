@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "adk-rust-mcp-avtool"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "adk-rust-mcp-common",
  "anyhow",
@@ -27,7 +27,7 @@ dependencies = [
 
 [[package]]
 name = "adk-rust-mcp-common"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -57,7 +57,7 @@ dependencies = [
 
 [[package]]
 name = "adk-rust-mcp-composer"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "adk-rust-mcp-common",
  "anyhow",
@@ -80,7 +80,7 @@ dependencies = [
 
 [[package]]
 name = "adk-rust-mcp-image"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "adk-rust-mcp-common",
  "anyhow",
@@ -103,7 +103,7 @@ dependencies = [
 
 [[package]]
 name = "adk-rust-mcp-multimodal"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "adk-rust-mcp-common",
  "anyhow",
@@ -125,7 +125,7 @@ dependencies = [
 
 [[package]]
 name = "adk-rust-mcp-music"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "adk-rust-mcp-common",
  "anyhow",
@@ -151,7 +151,7 @@ dependencies = [
 
 [[package]]
 name = "adk-rust-mcp-speech"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "adk-rust-mcp-common",
  "anyhow",
@@ -174,7 +174,7 @@ dependencies = [
 
 [[package]]
 name = "adk-rust-mcp-video"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "adk-rust-mcp-common",
  "anyhow",
