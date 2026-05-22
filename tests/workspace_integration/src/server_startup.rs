@@ -13,6 +13,7 @@ fn test_config() -> Config {
         location: "us-central1".to_string(),
         gcs_bucket: None,
         port: 8080,
+    ..Default::default()
     }
 }
 

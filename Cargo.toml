@@ -10,7 +10,6 @@ members = [
     "tests/workspace_integration",
 ]
 exclude = [
-    "adk-rust-mcp-common",
     "examples/image-agent",
     "examples/video-agent",
     "examples/music-agent",
@@ -83,4 +82,4 @@ clap = { version = "4.5", features = ["derive", "env"] }
 axum = "0.8"
 
 # Internal crates
-adk-rust-mcp-common = "0.3.0"
+adk-rust-mcp-common = { path = "adk-rust-mcp-common" }

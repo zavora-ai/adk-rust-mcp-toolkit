@@ -24,12 +24,12 @@
       ]
     },
     "adk-image": {
-      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-image",
+      "command": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp/target/release/adk-rust-mcp-image",
       "args": [
         "--transport",
         "stdio"
       ],
-      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "cwd": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp",
       "env": {
         "PROJECT_ID": "zavora-ai",
         "LOCATION": "us-central1",
@@ -40,12 +40,12 @@
       "autoApprove": []
     },
     "adk-video": {
-      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-video",
+      "command": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp/target/release/adk-rust-mcp-video",
       "args": [
         "--transport",
         "stdio"
       ],
-      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "cwd": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp",
       "env": {
         "PROJECT_ID": "zavora-ai",
         "LOCATION": "us-central1",
@@ -58,12 +58,9 @@
       ]
     },
     "adk-music": {
-      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-music",
-      "args": [
-        "--transport",
-        "stdio"
-      ],
-      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "command": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp/target/release/adk-rust-mcp-music",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp",
       "env": {
         "PROJECT_ID": "zavora-ai",
         "LOCATION": "us-central1",
@@ -74,12 +71,9 @@
       "autoApprove": []
     },
     "adk-speech": {
-      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-speech",
-      "args": [
-        "--transport",
-        "stdio"
-      ],
-      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "command": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp/target/release/adk-rust-mcp-speech",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp",
       "env": {
         "PROJECT_ID": "zavora-ai",
         "LOCATION": "us-central1",
@@ -90,12 +84,9 @@
       "autoApprove": []
     },
     "adk-multimodal": {
-      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-multimodal",
-      "args": [
-        "--transport",
-        "stdio"
-      ],
-      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "command": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp/target/release/adk-rust-mcp-multimodal",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp",
       "env": {
         "PROJECT_ID": "zavora-ai",
         "LOCATION": "us-central1",
@@ -106,12 +97,9 @@
       "autoApprove": []
     },
     "adk-avtool": {
-      "command": "/Users/jameskaranja/Developer/projects/adk-rust-mcp/target/release/adk-rust-mcp-avtool",
-      "args": [
-        "--transport",
-        "stdio"
-      ],
-      "cwd": "/Users/jameskaranja/Developer/projects/adk-rust-mcp",
+      "command": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp/target/release/adk-rust-mcp-avtool",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp",
       "env": {
         "PROJECT_ID": "zavora-ai",
         "LOCATION": "us-central1",

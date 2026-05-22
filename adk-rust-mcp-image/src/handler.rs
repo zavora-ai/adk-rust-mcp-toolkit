@@ -18,7 +18,7 @@ use tracing::{debug, info, instrument};
 pub const VALID_ASPECT_RATIOS: &[&str] = &["1:1", "3:4", "4:3", "9:16", "16:9"];
 
 /// Default model for image generation.
-pub const DEFAULT_MODEL: &str = "imagen-4.0-generate-preview-06-06";
+pub const DEFAULT_MODEL: &str = "imagen-3.0-generate-002";
 
 /// Minimum number of images that can be generated.
 pub const MIN_NUMBER_OF_IMAGES: u8 = 1;
@@ -1506,6 +1506,7 @@ mod api_tests {
             location: "us-central1".to_string(),
             gcs_bucket: None,
             port: 8080,
+        ..Default::default()
         };
 
         // Create a minimal handler for testing endpoint construction

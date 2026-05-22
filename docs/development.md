@@ -147,6 +147,8 @@ cargo clippy --workspace --all-targets
 ./target/release/adk-rust-mcp-image
 ```
 
+> **Note:** Servers direct all tracing/log output to stderr to keep stdout clean for the MCP JSON-RPC protocol. If you add a new server, always configure the tracing subscriber with `.with_writer(std::io::stderr)`.
+
 ### HTTP Mode
 
 ```bash

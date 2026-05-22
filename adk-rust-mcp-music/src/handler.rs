@@ -15,7 +15,7 @@ use std::path::Path;
 use tracing::{debug, info, instrument};
 
 /// Default model for music generation.
-pub const DEFAULT_MODEL: &str = "lyria-1.0";
+pub const DEFAULT_MODEL: &str = "lyria-3-pro-preview";
 
 /// Minimum number of samples that can be generated.
 pub const MIN_SAMPLE_COUNT: u8 = 1;
@@ -173,25 +173,33 @@ impl MusicHandler {
         }
     }
 
-    /// Get the Vertex AI Lyria API endpoint.
+    /// Get the Lyria API endpoint.
     pub fn get_endpoint(&self) -> String {
-        format!(
-            "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:predict",
-            self.config.location,
-            self.config.project_id,
-            self.config.location,
-            "lyria-002"
-        )
+        if self.config.is_gemini() {
+            format!("{}/models/{}:generateContent", self.config.gemini_base_url(), DEFAULT_MODEL)
+        } else {
+            format!(
+                "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:predict",
+                self.config.location,
+                self.config.project_id,
+                self.config.location,
+                DEFAULT_MODEL
+            )
+        }
+    }
+
+    /// Add auth headers based on provider.
+    async fn add_auth(&self, builder: reqwest::RequestBuilder) -> Result<reqwest::RequestBuilder, Error> {
+        if self.config.is_gemini() {
+            let key = self.config.gemini_api_key.as_deref().unwrap_or_default();
+            Ok(builder.header("x-goog-api-key", key))
+        } else {
+            let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
+            Ok(builder.header("Authorization", format!("Bearer {}", token)))
+        }
     }
 
     /// Generate music from a text prompt.
-    ///
-    /// # Arguments
-    /// * `params` - Music generation parameters
-    ///
-    /// # Returns
-    /// * `Ok(MusicGenerateResult)` - Generated music with their data or paths
-    /// * `Err(Error)` - If validation fails, API call fails, or output handling fails
     #[instrument(level = "info", name = "generate_music", skip(self, params))]
     pub async fn generate_music(&self, params: MusicGenerateParams) -> Result<MusicGenerateResult, Error> {
         // Validate parameters
@@ -202,32 +210,42 @@ impl MusicHandler {
 
         info!(sample_count = params.sample_count, "Generating music with Lyria API");
 
-        // Build the API request
-        let request = LyriaRequest {
-            instances: vec![LyriaInstance {
-                prompt: params.prompt.clone(),
-                negative_prompt: params.negative_prompt.clone(),
-            }],
-            parameters: LyriaParameters {
-                sample_count: params.sample_count,
-                seed: params.seed,
-            },
-        };
-
-        // Get auth token
-        let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
-
-        // Make API request
         let endpoint = self.get_endpoint();
         debug!(endpoint = %endpoint, "Calling Lyria API");
 
-        let response = self.http
-            .post(&endpoint)
-            .header("Authorization", format!("Bearer {}", token))
-            .header("Content-Type", "application/json")
-            .json(&request)
-            .send()
-            .await
+        // Build request based on provider
+        let builder = if self.config.is_gemini() {
+            // Gemini API: generateContent format
+            let request = serde_json::json!({
+                "contents": [{
+                    "parts": [{"text": params.prompt}]
+                }],
+                "generationConfig": {
+                    "responseModalities": ["AUDIO", "TEXT"]
+                }
+            });
+            self.http.post(&endpoint)
+                .header("Content-Type", "application/json")
+                .json(&request)
+        } else {
+            // Vertex AI: predict format
+            let request = LyriaRequest {
+                instances: vec![LyriaInstance {
+                    prompt: params.prompt.clone(),
+                    negative_prompt: params.negative_prompt.clone(),
+                }],
+                parameters: LyriaParameters {
+                    sample_count: params.sample_count,
+                    seed: params.seed,
+                },
+            };
+            self.http.post(&endpoint)
+                .header("Content-Type", "application/json")
+                .json(&request)
+        };
+
+        let builder = self.add_auth(builder).await?;
+        let response = builder.send().await
             .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;
 
         let status = response.status();
@@ -236,37 +254,59 @@ impl MusicHandler {
             return Err(Error::api(&endpoint, status.as_u16(), body));
         }
 
-        // Get raw response for debugging
         let response_text = response.text().await.map_err(|e| {
             Error::api(&endpoint, status.as_u16(), format!("Failed to read response: {}", e))
         })?;
         
         debug!(response = %response_text.chars().take(500).collect::<String>(), "Raw Lyria API response");
 
-        // Parse response
-        let api_response: LyriaResponse = serde_json::from_str(&response_text).map_err(|e| {
-            Error::api(&endpoint, status.as_u16(), format!("Failed to parse response: {}. Raw: {}", e, &response_text[..response_text.len().min(500)]))
-        })?;
-
-        // Extract audio samples from response
-        let samples: Vec<GeneratedAudio> = api_response
-            .predictions
-            .into_iter()
-            .filter_map(|p| {
-                p.bytes_base64_encoded.map(|data| GeneratedAudio {
-                    data,
-                    mime_type: p.mime_type.unwrap_or_else(|| "audio/wav".to_string()),
+        // Parse response based on provider
+        let samples = if self.config.is_gemini() {
+            // Gemini format: candidates[].content.parts[].inlineData
+            let resp: serde_json::Value = serde_json::from_str(&response_text).map_err(|e| {
+                Error::api(&endpoint, status.as_u16(), format!("Failed to parse response: {}", e))
+            })?;
+            let mut audio_samples = Vec::new();
+            if let Some(candidates) = resp["candidates"].as_array() {
+                for candidate in candidates {
+                    if let Some(parts) = candidate["content"]["parts"].as_array() {
+                        for part in parts {
+                            if let Some(inline_data) = part.get("inlineData") {
+                                if let (Some(data), Some(mime)) = (
+                                    inline_data["data"].as_str(),
+                                    inline_data["mimeType"].as_str(),
+                                ) {
+                                    audio_samples.push(GeneratedAudio {
+                                        data: data.to_string(),
+                                        mime_type: mime.to_string(),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            audio_samples
+        } else {
+            // Vertex AI format: predictions[].bytesBase64Encoded
+            let api_response: LyriaResponse = serde_json::from_str(&response_text).map_err(|e| {
+                Error::api(&endpoint, status.as_u16(), format!("Failed to parse response: {}. Raw: {}", e, &response_text[..response_text.len().min(500)]))
+            })?;
+            api_response.predictions.into_iter()
+                .filter_map(|p| {
+                    p.bytes_base64_encoded.map(|data| GeneratedAudio {
+                        data,
+                        mime_type: p.mime_type.unwrap_or_else(|| "audio/wav".to_string()),
+                    })
                 })
-            })
-            .collect();
+                .collect()
+        };
 
         if samples.is_empty() {
             return Err(Error::api(&endpoint, 200, "No audio samples returned from API"));
         }
 
         info!(count = samples.len(), "Received audio samples from API");
-
-        // Handle output based on params
         self.handle_output(samples, &params).await
     }
 

@@ -33,8 +33,9 @@ async fn main() -> Result<()> {
 
     #[cfg(not(feature = "otel"))]
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
+            .with_writer(std::io::stderr)
+            .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+            .init();
 
     tracing::info!("adk-rust-mcp-image server starting...");
 

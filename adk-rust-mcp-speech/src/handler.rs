@@ -271,14 +271,29 @@ impl SpeechHandler {
 
     /// Get the Cloud TTS API endpoint.
     pub fn get_endpoint(&self) -> String {
-        format!(
-            "https://texttospeech.googleapis.com/v1/text:synthesize"
-        )
+        if self.config.is_gemini() {
+            "https://texttospeech.googleapis.com/v1/text:synthesize".to_string()
+        } else {
+            "https://texttospeech.googleapis.com/v1/text:synthesize".to_string()
+        }
     }
 
     /// Get the Cloud TTS voices list endpoint.
     pub fn get_voices_endpoint(&self) -> String {
-        format!("https://texttospeech.googleapis.com/v1/voices")
+        "https://texttospeech.googleapis.com/v1/voices".to_string()
+    }
+
+    /// Add auth headers based on provider.
+    async fn add_auth(&self, builder: reqwest::RequestBuilder) -> Result<reqwest::RequestBuilder, Error> {
+        if self.config.is_gemini() {
+            let key = self.config.gemini_api_key.as_deref().unwrap_or_default();
+            Ok(builder.header("x-goog-api-key", key))
+        } else {
+            let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
+            Ok(builder
+                .header("Authorization", format!("Bearer {}", token))
+                .header("x-goog-user-project", &self.config.project_id))
+        }
     }
 
     /// Synthesize speech from text.
@@ -324,23 +339,17 @@ impl SpeechHandler {
             },
         };
 
-        // Get auth token
-        let token = self
-            .auth
-            .get_token(&["https://www.googleapis.com/auth/cloud-platform"])
-            .await?;
-
         // Make API request
         let endpoint = self.get_endpoint();
         debug!(endpoint = %endpoint, "Calling Cloud TTS API");
 
-        let response = self
-            .http
+        let builder = self.http
             .post(&endpoint)
-            .header("Authorization", format!("Bearer {}", token))
             .header("Content-Type", "application/json")
-            .header("x-goog-user-project", &self.config.project_id)
-            .json(&request)
+            .json(&request);
+        let builder = self.add_auth(builder).await?;
+
+        let response = builder
             .send()
             .await
             .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;
@@ -386,21 +395,14 @@ impl SpeechHandler {
     pub async fn list_voices(&self) -> Result<Vec<VoiceInfo>, Error> {
         info!("Listing available voices from Cloud TTS API");
 
-        // Get auth token
-        let token = self
-            .auth
-            .get_token(&["https://www.googleapis.com/auth/cloud-platform"])
-            .await?;
-
         // Make API request
         let endpoint = self.get_voices_endpoint();
         debug!(endpoint = %endpoint, "Calling Cloud TTS voices API");
 
-        let response = self
-            .http
-            .get(&endpoint)
-            .header("Authorization", format!("Bearer {}", token))
-            .header("x-goog-user-project", &self.config.project_id)
+        let builder = self.http.get(&endpoint);
+        let builder = self.add_auth(builder).await?;
+
+        let response = builder
             .send()
             .await
             .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;

@@ -125,6 +125,8 @@ Best for local subprocess communication (Claude Desktop, Kiro):
 ./adk-rust-mcp-image --transport stdio
 ```
 
+> **Important:** When using stdio transport, all logging/tracing output **must** go to stderr, not stdout. Stdout is reserved exclusively for JSON-RPC protocol messages. Writing anything else to stdout (e.g., log lines) will corrupt the protocol and cause "connection closed" errors. The servers handle this automatically via `.with_writer(std::io::stderr)` in the tracing subscriber configuration.
+
 ### HTTP Streamable
 
 Best for remote clients, web applications, and ADK agents:
@@ -199,6 +201,31 @@ Environment variables for OpenTelemetry:
 ## Troubleshooting
 
 ### Common Issues
+
+#### "connection closed: initialize response" Error
+
+**Symptom:** Kiro or Claude Desktop shows servers as failed with:
+```
+connection closed: initialize response
+```
+
+**Cause:** The server is writing non-JSON-RPC data (typically log/tracing output) to stdout, which corrupts the MCP protocol. The stdio transport requires stdout to contain only JSON-RPC messages.
+
+**Solution:** Ensure the tracing subscriber writes to stderr:
+```rust
+tracing_subscriber::fmt()
+    .with_writer(std::io::stderr)  // Critical for stdio transport
+    .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+    .init();
+```
+
+You can verify by running the server manually and checking stdout is clean:
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' | \
+  PROJECT_ID=your-project ./target/release/adk-rust-mcp-image --transport stdio 2>/dev/null
+```
+
+If stdout contains anything other than a JSON-RPC response, that's the problem.
 
 #### "Read-only file system" Error (macOS)
 

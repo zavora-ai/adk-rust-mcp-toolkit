@@ -49,6 +49,8 @@ mod config_logic_tests {
             location: "us-central1".to_string(),
             gcs_bucket: Some("my-bucket".to_string()),
             port: 8080,
+            api_provider: crate::config::ApiProvider::Vertex,
+            gemini_api_key: None,
         };
 
         assert_eq!(config.project_id, "test-project");
@@ -65,6 +67,8 @@ mod config_logic_tests {
             location: "us-west1".to_string(),
             gcs_bucket: None,
             port: 8080,
+            api_provider: crate::config::ApiProvider::Vertex,
+            gemini_api_key: None,
         };
 
         let endpoint = config.vertex_ai_endpoint("imagen-3.0-generate-002");
@@ -86,6 +90,8 @@ mod config_logic_tests {
                 location: location.to_string(),
                 gcs_bucket: None,
                 port: 8080,
+                api_provider: crate::config::ApiProvider::Vertex,
+                gemini_api_key: None,
             };
 
             let endpoint = config.vertex_ai_endpoint("test-model");
@@ -106,6 +112,8 @@ mod config_logic_tests {
             location: "us-central1".to_string(),
             gcs_bucket: Some("bucket".to_string()),
             port: 9000,
+            api_provider: crate::config::ApiProvider::Vertex,
+            gemini_api_key: None,
         };
 
         let cloned = config.clone();
@@ -123,6 +131,8 @@ mod config_logic_tests {
             location: "us-central1".to_string(),
             gcs_bucket: None,
             port: 8080,
+            api_provider: crate::config::ApiProvider::Vertex,
+            gemini_api_key: None,
         };
 
         let debug_str = format!("{:?}", config);
@@ -152,6 +162,8 @@ mod property_tests {
                 location: "us-central1".to_string(),
                 gcs_bucket: None,
                 port: 8080,
+                api_provider: crate::config::ApiProvider::Vertex,
+                gemini_api_key: None,
             };
             prop_assert_eq!(config.project_id, project_id);
         }
@@ -171,6 +183,8 @@ mod property_tests {
                 location: location.clone(),
                 gcs_bucket: None,
                 port: 8080,
+                api_provider: crate::config::ApiProvider::Vertex,
+                gemini_api_key: None,
             };
             prop_assert_eq!(config.location, location);
         }
@@ -190,6 +204,8 @@ mod property_tests {
                 location: "us-central1".to_string(),
                 gcs_bucket: Some(bucket.clone()),
                 port: 8080,
+                api_provider: crate::config::ApiProvider::Vertex,
+                gemini_api_key: None,
             };
             prop_assert_eq!(config.gcs_bucket, Some(bucket));
         }
@@ -209,6 +225,8 @@ mod property_tests {
                 location: "us-central1".to_string(),
                 gcs_bucket: None,
                 port,
+                api_provider: crate::config::ApiProvider::Vertex,
+                gemini_api_key: None,
             };
             prop_assert_eq!(config.port, port);
         }
@@ -229,6 +247,8 @@ mod property_tests {
                 location: location.clone(),
                 gcs_bucket: None,
                 port: 8080,
+                api_provider: crate::config::ApiProvider::Vertex,
+                gemini_api_key: None,
             };
 
             let endpoint = config.vertex_ai_endpoint("test-model");
@@ -256,6 +276,8 @@ mod property_tests {
                 location: "us-central1".to_string(),
                 gcs_bucket: None,
                 port: 8080,
+                api_provider: crate::config::ApiProvider::Vertex,
+                gemini_api_key: None,
             };
 
             let endpoint = config.vertex_ai_endpoint(&model);

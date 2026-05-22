@@ -325,6 +325,7 @@ mod tests {
             location: "us-central1".to_string(),
             gcs_bucket: None,
             port: 8080,
+        ..Default::default()
         }
     }
 

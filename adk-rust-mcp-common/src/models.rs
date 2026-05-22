@@ -124,8 +124,35 @@ pub const VEO_3_0_GENERATE_PREVIEW: VeoModel = VeoModel {
     supports_audio: true,
 };
 
+/// Veo 3.1 Generate Preview model
+pub const VEO_3_1_GENERATE_PREVIEW: VeoModel = VeoModel {
+    id: "veo-3.1-generate-preview",
+    aliases: &["veo-3.1", "veo3.1"],
+    supported_aspect_ratios: &["16:9", "9:16"],
+    supported_durations: &[4, 6, 8],
+    supports_audio: true,
+};
+
+/// Veo 3.1 Fast Generate Preview model
+pub const VEO_3_1_FAST_GENERATE_PREVIEW: VeoModel = VeoModel {
+    id: "veo-3.1-fast-generate-preview",
+    aliases: &["veo-3.1-fast", "veo3.1-fast"],
+    supported_aspect_ratios: &["16:9", "9:16"],
+    supported_durations: &[4, 6, 8],
+    supports_audio: true,
+};
+
+/// Veo 3.1 Lite Generate Preview model
+pub const VEO_3_1_LITE_GENERATE_PREVIEW: VeoModel = VeoModel {
+    id: "veo-3.1-lite-generate-preview",
+    aliases: &["veo-3.1-lite", "veo3.1-lite"],
+    supported_aspect_ratios: &["16:9", "9:16"],
+    supported_durations: &[4, 6, 8],
+    supports_audio: true,
+};
+
 /// All available Veo models
-pub const VEO_MODELS: &[VeoModel] = &[VEO_2_0_GENERATE_001, VEO_3_0_GENERATE_PREVIEW];
+pub const VEO_MODELS: &[VeoModel] = &[VEO_2_0_GENERATE_001, VEO_3_0_GENERATE_PREVIEW, VEO_3_1_GENERATE_PREVIEW, VEO_3_1_FAST_GENERATE_PREVIEW, VEO_3_1_LITE_GENERATE_PREVIEW];
 
 // =============================================================================
 // Gemini Model Definitions
@@ -147,8 +174,52 @@ pub const GEMINI_2_0_FLASH_LITE: GeminiModel = GeminiModel {
     supports_tts: true,
 };
 
+/// Gemini 2.5 Flash Image model
+pub const GEMINI_2_5_FLASH_IMAGE: GeminiModel = GeminiModel {
+    id: "gemini-2.5-flash-image",
+    aliases: &["gemini-2.5-flash-image-preview"],
+    supports_image_generation: true,
+    supports_tts: false,
+};
+
+/// Gemini 3.1 Flash Image Preview model
+pub const GEMINI_3_1_FLASH_IMAGE_PREVIEW: GeminiModel = GeminiModel {
+    id: "gemini-3.1-flash-image-preview",
+    aliases: &["gemini-3.1-flash-image"],
+    supports_image_generation: true,
+    supports_tts: false,
+};
+
+/// Gemini 3 Pro Image Preview model
+pub const GEMINI_3_PRO_IMAGE_PREVIEW: GeminiModel = GeminiModel {
+    id: "gemini-3-pro-image-preview",
+    aliases: &["gemini-3-pro-image"],
+    supports_image_generation: true,
+    supports_tts: false,
+};
+
+/// Gemini 2.5 Flash Preview TTS model
+pub const GEMINI_2_5_FLASH_PREVIEW_TTS: GeminiModel = GeminiModel {
+    id: "gemini-2.5-flash-preview-tts",
+    aliases: &["gemini-2.5-tts", "gemini-tts"],
+    supports_image_generation: false,
+    supports_tts: true,
+};
+
+/// Gemini 3.1 Flash TTS Preview model
+pub const GEMINI_3_1_FLASH_TTS_PREVIEW: GeminiModel = GeminiModel {
+    id: "gemini-3.1-flash-tts-preview",
+    aliases: &["gemini-3.1-tts"],
+    supports_image_generation: false,
+    supports_tts: true,
+};
+
 /// All available Gemini models
-pub const GEMINI_MODELS: &[GeminiModel] = &[GEMINI_2_0_FLASH, GEMINI_2_0_FLASH_LITE];
+pub const GEMINI_MODELS: &[GeminiModel] = &[
+    GEMINI_2_0_FLASH, GEMINI_2_0_FLASH_LITE, GEMINI_2_5_FLASH_IMAGE,
+    GEMINI_3_1_FLASH_IMAGE_PREVIEW, GEMINI_3_PRO_IMAGE_PREVIEW,
+    GEMINI_2_5_FLASH_PREVIEW_TTS, GEMINI_3_1_FLASH_TTS_PREVIEW,
+];
 
 // =============================================================================
 // Lyria Model Definitions
@@ -161,8 +232,22 @@ pub const LYRIA_1_0: LyriaModel = LyriaModel {
     max_samples: 4,
 };
 
+/// Lyria 3 Pro Preview model (latest)
+pub const LYRIA_3_PRO_PREVIEW: LyriaModel = LyriaModel {
+    id: "lyria-3-pro-preview",
+    aliases: &["lyria-3", "lyria-pro", "lyria-latest"],
+    max_samples: 4,
+};
+
+/// Lyria 3 Clip Preview model (30-second clips)
+pub const LYRIA_3_CLIP_PREVIEW: LyriaModel = LyriaModel {
+    id: "lyria-3-clip-preview",
+    aliases: &["lyria-3-clip", "lyria-clip"],
+    max_samples: 4,
+};
+
 /// All available Lyria models
-pub const LYRIA_MODELS: &[LyriaModel] = &[LYRIA_1_0];
+pub const LYRIA_MODELS: &[LyriaModel] = &[LYRIA_1_0, LYRIA_3_PRO_PREVIEW, LYRIA_3_CLIP_PREVIEW];
 
 
 // =============================================================================

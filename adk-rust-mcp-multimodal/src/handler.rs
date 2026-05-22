@@ -24,6 +24,10 @@ pub const DEFAULT_VOICE: &str = "Kore";
 /// Available Gemini TTS voices.
 pub const AVAILABLE_VOICES: &[&str] = &[
     "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede",
+    "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba",
+    "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar",
+    "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi",
+    "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
 ];
 
 /// Available TTS styles.
@@ -31,23 +35,17 @@ pub const AVAILABLE_STYLES: &[&str] = &[
     "neutral", "cheerful", "sad", "angry", "fearful", "surprised", "calm",
 ];
 
-/// Supported language codes for Gemini TTS.
+/// Supported language codes for Gemini TTS (auto-detected, BCP-47).
 pub const SUPPORTED_LANGUAGE_CODES: &[(&str, &str)] = &[
-    ("en-US", "English (US)"),
-    ("en-GB", "English (UK)"),
-    ("es-ES", "Spanish (Spain)"),
-    ("es-MX", "Spanish (Mexico)"),
-    ("fr-FR", "French (France)"),
-    ("de-DE", "German (Germany)"),
-    ("it-IT", "Italian (Italy)"),
-    ("pt-BR", "Portuguese (Brazil)"),
-    ("ja-JP", "Japanese (Japan)"),
-    ("ko-KR", "Korean (Korea)"),
-    ("zh-CN", "Chinese (Simplified)"),
-    ("zh-TW", "Chinese (Traditional)"),
-    ("ar-XA", "Arabic"),
-    ("hi-IN", "Hindi (India)"),
-    ("ru-RU", "Russian (Russia)"),
+    ("en", "English"), ("ar", "Arabic"), ("bn", "Bangla"), ("nl", "Dutch"),
+    ("fr", "French"), ("de", "German"), ("hi", "Hindi"), ("id", "Indonesian"),
+    ("it", "Italian"), ("ja", "Japanese"), ("ko", "Korean"), ("mr", "Marathi"),
+    ("pl", "Polish"), ("pt", "Portuguese"), ("ro", "Romanian"), ("ru", "Russian"),
+    ("es", "Spanish"), ("ta", "Tamil"), ("te", "Telugu"), ("th", "Thai"),
+    ("tr", "Turkish"), ("uk", "Ukrainian"), ("vi", "Vietnamese"), ("fil", "Filipino"),
+    ("fi", "Finnish"), ("el", "Greek"), ("gu", "Gujarati"), ("he", "Hebrew"),
+    ("hu", "Hungarian"), ("sv", "Swedish"), ("zh", "Chinese (Mandarin)"),
+    ("cs", "Czech"), ("da", "Danish"), ("nb", "Norwegian"),
 ];
 
 /// Multimodal image generation parameters.
@@ -227,24 +225,37 @@ impl MultimodalHandler {
 
     /// Get the Gemini API endpoint for image generation.
     pub fn get_image_endpoint(&self, model: &str) -> String {
-        format!(
-            "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:generateContent",
-            self.config.location,
-            self.config.project_id,
-            self.config.location,
-            model
-        )
+        if self.config.is_gemini() {
+            format!("{}/models/{}:generateContent", self.config.gemini_base_url(), model)
+        } else {
+            format!(
+                "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:generateContent",
+                self.config.location, self.config.project_id, self.config.location, model
+            )
+        }
     }
 
     /// Get the Gemini API endpoint for TTS.
     pub fn get_tts_endpoint(&self, model: &str) -> String {
-        format!(
-            "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:generateContent",
-            self.config.location,
-            self.config.project_id,
-            self.config.location,
-            model
-        )
+        if self.config.is_gemini() {
+            format!("{}/models/{}:generateContent", self.config.gemini_base_url(), model)
+        } else {
+            format!(
+                "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:generateContent",
+                self.config.location, self.config.project_id, self.config.location, model
+            )
+        }
+    }
+
+    /// Add auth headers based on provider.
+    async fn add_auth(&self, builder: reqwest::RequestBuilder) -> Result<reqwest::RequestBuilder, Error> {
+        if self.config.is_gemini() {
+            let key = self.config.gemini_api_key.as_deref().unwrap_or_default();
+            Ok(builder.header("x-goog-api-key", key))
+        } else {
+            let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
+            Ok(builder.header("Authorization", format!("Bearer {}", token)))
+        }
     }
 
 
@@ -287,22 +298,17 @@ impl MultimodalHandler {
             },
         };
 
-        // Get auth token
-        let token = self
-            .auth
-            .get_token(&["https://www.googleapis.com/auth/cloud-platform"])
-            .await?;
-
         // Make API request
         let endpoint = self.get_image_endpoint(&params.model);
         debug!(endpoint = %endpoint, "Calling Gemini API for image generation");
 
-        let response = self
-            .http
+        let builder = self.http
             .post(&endpoint)
-            .header("Authorization", format!("Bearer {}", token))
             .header("Content-Type", "application/json")
-            .json(&request)
+            .json(&request);
+        let builder = self.add_auth(builder).await?;
+
+        let response = builder
             .send()
             .await
             .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;
@@ -385,22 +391,17 @@ impl MultimodalHandler {
             },
         };
 
-        // Get auth token
-        let token = self
-            .auth
-            .get_token(&["https://www.googleapis.com/auth/cloud-platform"])
-            .await?;
-
         // Make API request
         let endpoint = self.get_tts_endpoint(&params.model);
         debug!(endpoint = %endpoint, "Calling Gemini API for TTS");
 
-        let response = self
-            .http
+        let builder = self.http
             .post(&endpoint)
-            .header("Authorization", format!("Bearer {}", token))
             .header("Content-Type", "application/json")
-            .json(&request)
+            .json(&request);
+        let builder = self.add_auth(builder).await?;
+
+        let response = builder
             .send()
             .await
             .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;

@@ -61,6 +61,7 @@ fn get_test_config() -> Option<Config> {
         location: env::var("LOCATION").unwrap_or_else(|_| "us-central1".to_string()),
         gcs_bucket: env::var("GCS_BUCKET").ok(),
         port: 8080,
+    ..Default::default()
     })
 }
 

@@ -19,7 +19,7 @@ use tracing::{debug, info, instrument};
 pub const VALID_ASPECT_RATIOS: &[&str] = &["16:9", "9:16"];
 
 /// Default model for video generation.
-pub const DEFAULT_MODEL: &str = "veo-3.0-generate-preview";
+pub const DEFAULT_MODEL: &str = "veo-3.1-generate-preview";
 
 /// Default duration in seconds (must be one of the supported values: 4, 6, 8).
 pub const DEFAULT_DURATION_SECONDS: u8 = 8;
@@ -582,25 +582,39 @@ impl VideoHandler {
 
     /// Get the Vertex AI Veo API endpoint for generating videos.
     pub fn get_generate_endpoint(&self, model: &str) -> String {
-        format!(
-            "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:predictLongRunning",
-            self.config.location,
-            self.config.project_id,
-            self.config.location,
-            model
-        )
+        if self.config.is_gemini() {
+            format!("{}/models/{}:predictLongRunning", self.config.gemini_base_url(), model)
+        } else {
+            format!(
+                "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:predictLongRunning",
+                self.config.location, self.config.project_id, self.config.location, model
+            )
+        }
     }
 
-    /// Get the Vertex AI endpoint for fetching LRO status.
-    /// Uses the fetchPredictOperation endpoint which requires the operation name in the request body.
+    /// Get the endpoint for fetching LRO status.
     pub fn get_fetch_operation_endpoint(&self, model: &str) -> String {
-        format!(
-            "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:fetchPredictOperation",
-            self.config.location,
-            self.config.project_id,
-            self.config.location,
-            model
-        )
+        if self.config.is_gemini() {
+            // Gemini uses GET on the operation name directly — endpoint not used the same way
+            // The operation_name IS the full path, so we just prepend the base URL
+            format!("{}", self.config.gemini_base_url())
+        } else {
+            format!(
+                "https://{}-aiplatform.googleapis.com/v1/projects/{}/locations/{}/publishers/google/models/{}:fetchPredictOperation",
+                self.config.location, self.config.project_id, self.config.location, model
+            )
+        }
+    }
+
+    /// Add auth headers to a request based on provider.
+    async fn add_auth(&self, builder: reqwest::RequestBuilder) -> Result<reqwest::RequestBuilder, Error> {
+        if self.config.is_gemini() {
+            let key = self.config.gemini_api_key.as_deref().unwrap_or_default();
+            Ok(builder.header("x-goog-api-key", key))
+        } else {
+            let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
+            Ok(builder.header("Authorization", format!("Bearer {}", token)))
+        }
     }
 
     /// Generate video from a text prompt.
@@ -633,25 +647,24 @@ impl VideoHandler {
             }],
             parameters: VeoParameters {
                 aspect_ratio: Some(params.aspect_ratio.clone()),
-                storage_uri: params.output_gcs_uri.clone(),
+                storage_uri: if self.config.is_gemini() { String::new() } else { params.output_gcs_uri.clone() },
                 duration_seconds: Some(params.duration_seconds),
                 generate_audio: if model.supports_audio { params.generate_audio } else { None },
                 seed: params.seed,
             },
         };
 
-        // Get auth token
-        let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
-
         // Make API request to start LRO
         let endpoint = self.get_generate_endpoint(model.id);
         debug!(endpoint = %endpoint, "Calling Veo API");
 
-        let response = self.http
+        let builder = self.http
             .post(&endpoint)
-            .header("Authorization", format!("Bearer {}", token))
             .header("Content-Type", "application/json")
-            .json(&request)
+            .json(&request);
+        let builder = self.add_auth(builder).await?;
+
+        let response = builder
             .send()
             .await
             .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;
@@ -728,7 +741,7 @@ impl VideoHandler {
             }],
             parameters: VeoI2vParameters {
                 aspect_ratio: Some(params.aspect_ratio.clone()),
-                storage_uri: params.output_gcs_uri.clone(),
+                storage_uri: if self.config.is_gemini() { String::new() } else { params.output_gcs_uri.clone() },
                 duration_seconds: Some(params.duration_seconds),
                 generate_audio: None, // I2V doesn't support audio generation
                 seed: params.seed,
@@ -736,18 +749,17 @@ impl VideoHandler {
             },
         };
 
-        // Get auth token
-        let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
-
         // Make API request to start LRO
         let endpoint = self.get_generate_endpoint(model.id);
         debug!(endpoint = %endpoint, "Calling Veo API");
 
-        let response = self.http
+        let builder = self.http
             .post(&endpoint)
-            .header("Authorization", format!("Bearer {}", token))
             .header("Content-Type", "application/json")
-            .json(&request)
+            .json(&request);
+        let builder = self.add_auth(builder).await?;
+
+        let response = builder
             .send()
             .await
             .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;
@@ -805,24 +817,23 @@ impl VideoHandler {
                 },
             }],
             parameters: VeoExtendParameters {
-                storage_uri: params.output_gcs_uri.clone(),
+                storage_uri: if self.config.is_gemini() { String::new() } else { params.output_gcs_uri.clone() },
                 duration_seconds: Some(params.duration_seconds),
                 seed: params.seed,
             },
         };
 
-        // Get auth token
-        let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
-
         // Make API request to start LRO
         let endpoint = self.get_generate_endpoint(model.id);
-        debug!(endpoint = %endpoint, "Calling Veo API for video extension");
+        debug!(endpoint = %endpoint, "Calling Veo API");
 
-        let response = self.http
+        let builder = self.http
             .post(&endpoint)
-            .header("Authorization", format!("Bearer {}", token))
             .header("Content-Type", "application/json")
-            .json(&request)
+            .json(&request);
+        let builder = self.add_auth(builder).await?;
+
+        let response = builder
             .send()
             .await
             .map_err(|e| Error::api(&endpoint, 0, format!("Request failed: {}", e)))?;
@@ -940,42 +951,47 @@ impl VideoHandler {
             // Wait before polling
             tokio::time::sleep(Duration::from_millis(delay_ms)).await;
 
-            // Get auth token
-            let token = self.auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).await?;
-
-            // Poll the operation using fetchPredictOperation
-            let endpoint = self.get_fetch_operation_endpoint(model);
-            debug!(endpoint = %endpoint, attempt = attempts, "Polling LRO");
-
-            // Build the fetch request with operation name in body
-            let fetch_request = FetchOperationRequest {
-                operation_name: operation_name.to_string(),
+            // Poll the operation
+            let response = if self.config.is_gemini() {
+                // Gemini: GET {base_url}/{operation_name}
+                let endpoint = format!("{}/{}", self.config.gemini_base_url(), operation_name);
+                debug!(endpoint = %endpoint, attempt = attempts, "Polling LRO (Gemini)");
+                let builder = self.http.get(&endpoint);
+                let builder = self.add_auth(builder).await?;
+                builder.send().await
+                    .map_err(|e| Error::api(&endpoint, 0, format!("Poll request failed: {}", e)))?
+            } else {
+                // Vertex: POST fetchPredictOperation with operation name in body
+                let endpoint = self.get_fetch_operation_endpoint(model);
+                debug!(endpoint = %endpoint, attempt = attempts, "Polling LRO (Vertex)");
+                let fetch_request = FetchOperationRequest {
+                    operation_name: operation_name.to_string(),
+                };
+                let builder = self.http
+                    .post(&endpoint)
+                    .header("Content-Type", "application/json")
+                    .json(&fetch_request);
+                let builder = self.add_auth(builder).await?;
+                builder.send().await
+                    .map_err(|e| Error::api(&endpoint, 0, format!("Poll request failed: {}", e)))?
             };
 
-            let response = self.http
-                .post(&endpoint)
-                .header("Authorization", format!("Bearer {}", token))
-                .header("Content-Type", "application/json")
-                .json(&fetch_request)
-                .send()
-                .await
-                .map_err(|e| Error::api(&endpoint, 0, format!("Poll request failed: {}", e)))?;
-
+            let poll_endpoint = format!("poll:{}", operation_name);
             let status = response.status();
             if !status.is_success() {
                 let body = response.text().await.unwrap_or_default();
-                return Err(Error::api(&endpoint, status.as_u16(), body));
+                return Err(Error::api(&poll_endpoint, status.as_u16(), body));
             }
 
             let lro_status: LroStatusResponse = response.json().await.map_err(|e| {
-                Error::api(&endpoint, status.as_u16(), format!("Failed to parse LRO status: {}", e))
+                Error::api(&poll_endpoint, status.as_u16(), format!("Failed to parse LRO status: {}", e))
             })?;
 
             if lro_status.done.unwrap_or(false) {
                 // Check for error
                 if let Some(error) = lro_status.error {
                     return Err(Error::api(
-                        &endpoint,
+                        &poll_endpoint,
                         error.code.unwrap_or(500) as u16,
                         error.message.unwrap_or_else(|| "Unknown error".to_string()),
                     ));
@@ -984,12 +1000,25 @@ impl VideoHandler {
                 // Return the result
                 if let Some(response) = lro_status.response {
                     info!(operation_name = %operation_name, attempts = attempts, "LRO completed successfully");
-                    return Ok(LroResult {
-                        videos: response.videos.unwrap_or_default(),
-                    });
+                    // Handle both Vertex (videos) and Gemini (generateVideoResponse) formats
+                    let videos = if let Some(vids) = response.videos {
+                        vids
+                    } else if let Some(gemini_resp) = response.generate_video_response {
+                        // Convert Gemini format to VideoOutput
+                        gemini_resp.generated_samples.unwrap_or_default()
+                            .into_iter()
+                            .filter_map(|s| s.video.map(|v| VideoOutput {
+                                gcs_uri: v.uri,
+                                mime_type: Some("video/mp4".to_string()),
+                            }))
+                            .collect()
+                    } else {
+                        Vec::new()
+                    };
+                    return Ok(LroResult { videos });
                 }
 
-                return Err(Error::api(&endpoint, 200, "LRO completed but no response found"));
+                return Err(Error::api(&poll_endpoint, 200, "LRO completed but no response found"));
             }
 
             // Increase delay with exponential backoff
@@ -1018,35 +1047,50 @@ impl VideoHandler {
             Error::api("", 200, "No video generated")
         })?;
 
-        let gcs_uri = video.gcs_uri.clone()
+        let video_uri = video.gcs_uri.clone()
             .unwrap_or_else(|| output_gcs_uri.to_string());
 
-        info!(gcs_uri = %gcs_uri, "Video generated successfully");
+        info!(video_uri = %video_uri, "Video generated successfully");
 
         // If download_local is requested, download the video
         if download_local {
             let local_file = if let Some(path) = local_path {
                 path.to_string()
             } else {
-                // Generate a default local path from the GCS URI
-                let uri = GcsUri::parse(&gcs_uri)?;
-                format!("./{}", uri.object.split('/').last().unwrap_or("output.mp4"))
+                "output.mp4".to_string()
             };
 
-            let uri = GcsUri::parse(&gcs_uri)?;
-            let data = self.gcs.download(&uri).await?;
-            tokio::fs::write(&local_file, &data).await?;
+            if video_uri.starts_with("gs://") {
+                // Download from GCS
+                let uri = GcsUri::parse(&video_uri)?;
+                let data = self.gcs.download(&uri).await?;
+                tokio::fs::write(&local_file, &data).await?;
+            } else {
+                // Direct HTTP download (Gemini API returns download URLs)
+                let builder = self.http.get(&video_uri);
+                let builder = self.add_auth(builder).await?;
+                let response = builder.send().await
+                    .map_err(|e| Error::api(&video_uri, 0, format!("Download failed: {}", e)))?;
+                if !response.status().is_success() {
+                    let status = response.status().as_u16();
+                    let body = response.text().await.unwrap_or_default();
+                    return Err(Error::api(&video_uri, status, body));
+                }
+                let data = response.bytes().await
+                    .map_err(|e| Error::api(&video_uri, 0, format!("Download read failed: {}", e)))?;
+                tokio::fs::write(&local_file, &data).await?;
+            }
 
             info!(local_file = %local_file, "Video downloaded locally");
 
             return Ok(VideoGenerateResult {
-                gcs_uri,
+                gcs_uri: video_uri,
                 local_path: Some(local_file),
             });
         }
 
         Ok(VideoGenerateResult {
-            gcs_uri,
+            gcs_uri: video_uri,
             local_path: None,
         })
     }
@@ -1106,7 +1150,7 @@ pub struct VeoI2vParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aspect_ratio: Option<String>,
     /// GCS URI for output (API expects "storageUri")
-    #[serde(rename = "storageUri")]
+    #[serde(rename = "storageUri", skip_serializing_if = "String::is_empty")]
     pub storage_uri: String,
     /// Duration in seconds
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1155,7 +1199,7 @@ pub struct VeoVideoInput {
 #[serde(rename_all = "camelCase")]
 pub struct VeoExtendParameters {
     /// GCS URI for output (API expects "storageUri")
-    #[serde(rename = "storageUri")]
+    #[serde(rename = "storageUri", skip_serializing_if = "String::is_empty")]
     pub storage_uri: String,
     /// Duration in seconds
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1173,7 +1217,7 @@ pub struct VeoParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aspect_ratio: Option<String>,
     /// GCS URI for output (API expects "storageUri")
-    #[serde(rename = "storageUri")]
+    #[serde(rename = "storageUri", skip_serializing_if = "String::is_empty")]
     pub storage_uri: String,
     /// Duration in seconds
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1221,18 +1265,41 @@ pub struct LroError {
     pub message: Option<String>,
 }
 
-/// LRO result response.
+/// LRO result response — supports both Vertex AI and Gemini API formats.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LroResultResponse {
-    /// Generated videos (API returns "videos" not "generatedSamples")
+    /// Vertex AI format: "videos" array
     pub videos: Option<Vec<VideoOutput>>,
+    /// Gemini API format: "generateVideoResponse"
+    pub generate_video_response: Option<GeminiVideoResponse>,
     /// Count of videos filtered by RAI policies
     #[serde(default)]
     pub rai_media_filtered_count: Option<i32>,
 }
 
-/// Video output from Veo API.
+/// Gemini API video response format.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GeminiVideoResponse {
+    pub generated_samples: Option<Vec<GeminiGeneratedSample>>,
+}
+
+/// Gemini API generated sample.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GeminiGeneratedSample {
+    pub video: Option<GeminiVideoOutput>,
+}
+
+/// Gemini API video output.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GeminiVideoOutput {
+    pub uri: Option<String>,
+}
+
+/// Video output from Veo API (Vertex AI format).
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoOutput {
@@ -2110,6 +2177,7 @@ mod api_tests {
             location: "us-central1".to_string(),
             gcs_bucket: None,
             port: 8080,
+        ..Default::default()
         };
 
         let expected_url = format!(
@@ -2134,6 +2202,7 @@ mod api_tests {
             location: "us-central1".to_string(),
             gcs_bucket: None,
             port: 8080,
+        ..Default::default()
         };
 
         let model = "veo-3.0-generate-preview";

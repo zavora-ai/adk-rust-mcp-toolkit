@@ -33,7 +33,7 @@ mod server_test;
 #[cfg(all(test, feature = "otel"))]
 mod otel_test;
 
-pub use config::Config;
+pub use config::{ApiProvider, Config};
 pub use error::{AuthError, ConfigError, Error, GcsError, GcsOperation, Result};
 pub use server::{McpServerBuilder, ServerError, shutdown_channel};
 pub use transport::{Transport, TransportArgs, TransportMode};

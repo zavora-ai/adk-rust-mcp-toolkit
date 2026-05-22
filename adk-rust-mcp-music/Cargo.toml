@@ -43,6 +43,9 @@ schemars.workspace = true
 async-trait.workspace = true
 base64.workspace = true
 clap.workspace = true
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+uuid.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true
