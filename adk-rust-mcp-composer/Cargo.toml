@@ -2,6 +2,7 @@
 name = "adk-rust-mcp-composer"
 description = "MCP server for composite media generation (GIFs, shorts, memes, presentations, podcasts)"
 readme = "README.md"
+documentation = "https://docs.rs/adk-rust-mcp-composer"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true
@@ -10,6 +11,10 @@ repository.workspace = true
 keywords.workspace = true
 categories.workspace = true
 rust-version.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
 name = "adk_rust_mcp_composer"

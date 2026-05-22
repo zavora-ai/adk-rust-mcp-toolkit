@@ -83,4 +83,4 @@ clap = { version = "4.5", features = ["derive", "env"] }
 axum = "0.8"
 
 # Internal crates
-adk-rust-mcp-common = { path = "adk-rust-mcp-common" }
+adk-rust-mcp-common = { version = "0.3.0", path = "adk-rust-mcp-common" }
