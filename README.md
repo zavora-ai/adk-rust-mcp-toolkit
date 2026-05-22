@@ -31,8 +31,6 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 ### 🎬 Video Generation
 
-https://github.com/user-attachments/assets/video_test.mp4
-
 <video src="docs/assets/video_test.mp4" width="640" controls></video>
 
 ### 🎵 Music Generation
