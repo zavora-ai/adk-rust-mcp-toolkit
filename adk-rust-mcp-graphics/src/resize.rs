@@ -22,6 +22,6 @@ pub async fn generate(config: &Config, params: ResizeParams) -> Result<String, S
         serde_json::json!({"text": format!("Extend this image to fill a {} frame. Generate new content to fill the extended areas naturally.", params.aspect_ratio)}),
     ];
     let output = params.output_file.unwrap_or_else(|| "resize_output.png".into());
-    let image_bytes = crate::call_gemini_image(config, "gemini-2.5-flash-preview-image-generation", parts, Some(&params.aspect_ratio)).await?;
+    let image_bytes = crate::call_gemini_image(config, "gemini-3.1-flash-image-preview", parts, Some(&params.aspect_ratio)).await?;
     crate::save_image(&image_bytes, &output).await
 }

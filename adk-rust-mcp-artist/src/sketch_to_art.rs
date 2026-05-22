@@ -27,6 +27,6 @@ pub async fn generate(config: &Config, params: SketchToArtParams) -> Result<Stri
         serde_json::json!({"text": format!("Turn this rough sketch into a polished {} artwork: {}", params.style, params.description)}),
     ];
     let output = params.output_file.unwrap_or_else(|| "sketch_to_art_output.png".into());
-    let image_bytes = crate::call_gemini_image(config, "gemini-2.5-flash-preview-image-generation", parts, None, None).await?;
+    let image_bytes = crate::call_gemini_image(config, "gemini-3.1-flash-image-preview", parts, None, None).await?;
     crate::save_image(&image_bytes, &output).await
 }

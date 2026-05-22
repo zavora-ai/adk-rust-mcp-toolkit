@@ -22,6 +22,6 @@ pub async fn generate(config: &Config, params: RemoveParams) -> Result<String, S
         serde_json::json!({"text": format!("Remove the {} from this image. Fill the area naturally.", params.object_to_remove)}),
     ];
     let output = params.output_file.unwrap_or_else(|| "remove_output.png".into());
-    let image_bytes = crate::call_gemini_image(config, "gemini-2.5-flash-preview-image-generation", parts, None).await?;
+    let image_bytes = crate::call_gemini_image(config, "gemini-3.1-flash-image-preview", parts, None).await?;
     crate::save_image(&image_bytes, &output).await
 }

@@ -22,6 +22,6 @@ pub async fn generate(config: &Config, params: BackgroundParams) -> Result<Strin
         serde_json::json!({"text": format!("Keep the main subject but replace the background with: {}", params.new_background)}),
     ];
     let output = params.output_file.unwrap_or_else(|| "background_output.png".into());
-    let image_bytes = crate::call_gemini_image(config, "gemini-2.5-flash-preview-image-generation", parts, None).await?;
+    let image_bytes = crate::call_gemini_image(config, "gemini-3.1-flash-image-preview", parts, None).await?;
     crate::save_image(&image_bytes, &output).await
 }

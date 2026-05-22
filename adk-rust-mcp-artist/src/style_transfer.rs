@@ -22,6 +22,6 @@ pub async fn generate(config: &Config, params: StyleTransferParams) -> Result<St
         serde_json::json!({"text": format!("Transform this image into: {}. Preserve the composition but change the artistic style.", params.style_description)}),
     ];
     let output = params.output_file.unwrap_or_else(|| "style_transfer_output.png".into());
-    let image_bytes = crate::call_gemini_image(config, "gemini-2.5-flash-preview-image-generation", parts, None, None).await?;
+    let image_bytes = crate::call_gemini_image(config, "gemini-3.1-flash-image-preview", parts, None, None).await?;
     crate::save_image(&image_bytes, &output).await
 }

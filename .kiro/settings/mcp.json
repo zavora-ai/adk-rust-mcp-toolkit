@@ -1,5 +1,21 @@
 {
   "mcpServers": {
+    "adk-artist": {
+      "command": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp/target/release/adk-rust-mcp-artist",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp",
+      "env": { "RUST_LOG": "info" },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "adk-graphics": {
+      "command": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp/target/release/adk-rust-mcp-graphics",
+      "args": ["--transport", "stdio"],
+      "cwd": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp",
+      "env": { "RUST_LOG": "info" },
+      "disabled": false,
+      "autoApprove": []
+    },
     "adk-education": {
       "command": "/Users/jameskaranja/Developer/projects/mcp-servers/media-mcp/target/release/adk-rust-mcp-education",
       "args": ["--transport", "stdio"],

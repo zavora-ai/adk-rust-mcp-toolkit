@@ -38,7 +38,7 @@ pub async fn generate(config: &Config, params: VariationsParams) -> Result<Strin
             serde_json::json!({"inline_data": {"mime_type": &mime, "data": &b64}}),
             serde_json::json!({"text": prompt}),
         ];
-        let image_bytes = crate::call_gemini_image(config, "gemini-2.5-flash-preview-image-generation", parts, None, None).await?;
+        let image_bytes = crate::call_gemini_image(config, "gemini-3.1-flash-image-preview", parts, None, None).await?;
         let path = format!("{}/variation_{}_{}.png", dir, i + 1, name);
         crate::save_image(&image_bytes, &path).await?;
         outputs.push(path);

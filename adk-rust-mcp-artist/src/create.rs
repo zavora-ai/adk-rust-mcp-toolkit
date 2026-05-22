@@ -44,7 +44,7 @@ pub async fn generate(config: &Config, params: ArtistCreateParams) -> Result<Str
     let output = params.output_file.unwrap_or_else(|| "artist_output.png".into());
 
     let image_bytes = crate::call_gemini_image(
-        config, "gemini-2.5-flash-preview-image-generation",
+        config, "gemini-3.1-flash-image-preview",
         parts, Some(&params.aspect_ratio), Some(&params.resolution),
     ).await?;
 

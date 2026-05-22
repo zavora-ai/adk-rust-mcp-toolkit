@@ -30,6 +30,6 @@ pub async fn generate(config: &Config, params: EnhanceParams) -> Result<String, 
         serde_json::json!({"text": instruction}),
     ];
     let output = params.output_file.unwrap_or_else(|| "enhanced_output.png".into());
-    let image_bytes = crate::call_gemini_image(config, "gemini-2.5-flash-preview-image-generation", parts, None).await?;
+    let image_bytes = crate::call_gemini_image(config, "gemini-3.1-flash-image-preview", parts, None).await?;
     crate::save_image(&image_bytes, &output).await
 }
