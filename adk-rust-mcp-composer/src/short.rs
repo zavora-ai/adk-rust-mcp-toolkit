@@ -42,8 +42,7 @@ pub async fn generate(config: &Config, params: ShortGenerateParams) -> Result<St
         "instances": [{"prompt": params.prompt}],
         "parameters": {
             "aspectRatio": "9:16",
-            "durationSeconds": params.duration_seconds,
-            "generateAudio": params.generate_audio
+            "durationSeconds": params.duration_seconds
         }
     });
 
@@ -98,7 +97,14 @@ pub async fn generate(config: &Config, params: ShortGenerateParams) -> Result<St
             .output().await.map_err(|e| e.to_string())?;
 
         if !output.status.success() {
-            return Err(format!("FFmpeg error: {}", String::from_utf8_lossy(&output.stderr)));
+            // Fallback: save without caption if drawtext not available
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if stderr.contains("drawtext") || stderr.contains("No such filter") {
+                info!("drawtext filter unavailable, saving without caption");
+                tokio::fs::write(&output_path, &video_data).await.map_err(|e| e.to_string())?;
+            } else {
+                return Err(format!("FFmpeg error: {}", stderr));
+            }
         }
     } else {
         tokio::fs::write(&output_path, &video_data).await.map_err(|e| e.to_string())?;

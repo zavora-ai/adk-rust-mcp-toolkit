@@ -47,6 +47,24 @@ https://github.com/user-attachments/assets/video_test.mp4
   <a href="docs/assets/speech_test.wav">Download speech sample</a>
 </audio>
 
+### 🎭 Meme Generation
+
+<img src="docs/assets/meme_example.png" width="400" alt="Generated meme"/>
+
+### 🎞️ GIF Generation
+
+<img src="docs/assets/gif_example.gif" width="400" alt="Generated GIF"/>
+
+### 📱 Short-Form Video
+
+<video src="docs/assets/short_example.mp4" width="270" controls></video>
+
+### 🎙️ Podcast Generation
+
+<audio controls src="docs/assets/podcast_example.wav">
+  <a href="docs/assets/podcast_example.wav">Download podcast sample</a>
+</audio>
+
 ## Servers
 
 | Server | Description | Tools |
@@ -56,6 +74,7 @@ https://github.com/user-attachments/assets/video_test.mp4
 | [`adk-rust-mcp-music`](adk-rust-mcp-music/) | Music generation & real-time streaming | `music_generate`, `music_realtime_start`, `music_realtime_steer`, `music_realtime_stop` |
 | [`adk-rust-mcp-speech`](adk-rust-mcp-speech/) | Text-to-speech | `speech_synthesize`, `speech_list_voices` |
 | [`adk-rust-mcp-multimodal`](adk-rust-mcp-multimodal/) | Gemini multimodal | `multimodal_image_generate`, `multimodal_speech_synthesize`, `multimodal_list_voices` |
+| [`adk-rust-mcp-composer`](adk-rust-mcp-composer/) | Composite media | `gif_generate`, `short_generate`, `meme_generate`, `presentation_generate`, `podcast_generate` |
 | [`adk-rust-mcp-avtool`](adk-rust-mcp-avtool/) | FFmpeg processing | `ffmpeg_*` (8 tools) |
 
 ## Quick Start

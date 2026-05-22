@@ -79,7 +79,7 @@ async fn generate_video(config: &Config, prompt: &str, duration: u8) -> Result<V
     let client = reqwest::Client::new();
     let body = serde_json::json!({
         "instances": [{"prompt": prompt}],
-        "parameters": {"aspectRatio": "1:1", "durationSeconds": duration}
+        "parameters": {"aspectRatio": "16:9", "durationSeconds": duration}
     });
 
     let resp = client.post(&url)
