@@ -69,6 +69,34 @@ https://github.com/user-attachments/assets/video_test.mp4
 
 <video src="docs/assets/presentation_example.mp4" width="640" controls></video>
 
+### 📚 Education Tools
+
+**Whiteboard** — Step-by-step math solutions and diagrams:
+
+<img src="docs/assets/education/whiteboard_math.png" width="500" alt="Whiteboard math solution"/>
+
+**Flashcards** — Visual Q&A cards for any topic:
+
+<table>
+<tr>
+<td><img src="docs/assets/education/card_01_front.png" width="250" alt="Flashcard front"/></td>
+<td><img src="docs/assets/education/card_01_back.png" width="250" alt="Flashcard back"/></td>
+</tr>
+</table>
+
+**Quiz** — Multiple-choice with illustrated questions:
+
+<img src="docs/assets/education/question_01.png" width="400" alt="Quiz question"/>
+
+**Story & Explainer** — Narrated illustrated videos:
+
+<table>
+<tr>
+<td align="center"><strong>Story</strong><br/><video src="docs/assets/education/story_turtle.mp4" width="300" controls></video></td>
+<td align="center"><strong>Explainer</strong><br/><video src="docs/assets/education/explainer_water_cycle.mp4" width="300" controls></video></td>
+</tr>
+</table>
+
 ## Servers
 
 | Server | Description | Tools |
@@ -79,6 +107,7 @@ https://github.com/user-attachments/assets/video_test.mp4
 | [`adk-rust-mcp-speech`](adk-rust-mcp-speech/) | Text-to-speech | `speech_synthesize`, `speech_list_voices` |
 | [`adk-rust-mcp-multimodal`](adk-rust-mcp-multimodal/) | Gemini multimodal | `multimodal_image_generate`, `multimodal_speech_synthesize`, `multimodal_list_voices` |
 | [`adk-rust-mcp-composer`](adk-rust-mcp-composer/) | Composite media | `gif_generate`, `short_generate`, `meme_generate`, `presentation_generate`, `podcast_generate` |
+| [`adk-rust-mcp-education`](adk-rust-mcp-education/) | Educational content | `whiteboard_generate`, `flashcard_generate`, `story_generate`, `quiz_generate`, `explainer_generate` |
 | [`adk-rust-mcp-avtool`](adk-rust-mcp-avtool/) | FFmpeg processing | `ffmpeg_*` (8 tools) |
 
 ## Quick Start

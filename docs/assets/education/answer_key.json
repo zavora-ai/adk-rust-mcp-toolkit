@@ -1,0 +1,40 @@
+{
+  "questions": [
+    {
+      "correct": "B",
+      "explanation": "Most dinosaurs lived during the Mesozoic Era, which was millions of years ago, long before humans existed.",
+      "number": 1,
+      "options": [
+        "A) A few hundred years ago",
+        "B) Millions of years ago",
+        "C) Last week",
+        "D) In the Stone Age with cavemen"
+      ],
+      "question": "How long ago did most dinosaurs live on Earth?"
+    },
+    {
+      "correct": "C",
+      "explanation": "Triceratops means 'three-horned face', and it's famous for the three large horns on its skull.",
+      "number": 2,
+      "options": [
+        "A) Tyrannosaurus Rex",
+        "B) Stegosaurus",
+        "C) Triceratops",
+        "D) Brachiosaurus"
+      ],
+      "question": "Which of these dinosaurs was known for its three horns on its face?"
+    },
+    {
+      "correct": "C",
+      "explanation": "Herbivores are animals that eat only plants. Dinosaurs like the Brachiosaurus and Triceratops were herbivores.",
+      "number": 3,
+      "options": [
+        "A) Other dinosaurs",
+        "B) Fish",
+        "C) Plants and leaves",
+        "D) Insects"
+      ],
+      "question": "What did plant-eating dinosaurs (herbivores) mostly eat?"
+    }
+  ]
+}
