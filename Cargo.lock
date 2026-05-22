@@ -79,6 +79,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "adk-rust-mcp-diagrams"
+version = "0.4.0"
+dependencies = [
+ "adk-rust-mcp-common",
+ "anyhow",
+ "base64",
+ "clap",
+ "dotenvy",
+ "reqwest",
+ "rmcp",
+ "schemars 0.8.22",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "adk-rust-mcp-education"
 version = "0.4.0"
 dependencies = [

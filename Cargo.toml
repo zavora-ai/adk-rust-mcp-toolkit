@@ -9,6 +9,7 @@ members = [
     "adk-rust-mcp-avtool",
     "adk-rust-mcp-composer",
     "adk-rust-mcp-education",
+    "adk-rust-mcp-diagrams",
     "tests/workspace_integration",
 ]
 exclude = [
