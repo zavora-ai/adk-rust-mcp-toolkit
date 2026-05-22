@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.5.0] - 2026-05-22
+
+### Added
+- **Dual API Support** — Gemini API (API key) and Vertex AI (ADC) with auto-detection
+- **Lyria RealTime** — Interactive music streaming via WebSocket (start/steer/stop)
+- **adk-rust-mcp-composer** — GIF, short-form video, meme, presentation, podcast generation
+- **adk-rust-mcp-education** — Whiteboard, flashcard, story, quiz, explainer tools
+- **adk-rust-mcp-diagrams** — Mermaid/SVG/PlantUML diagram generation from natural language
+- **adk-rust-mcp-artist** — Art creation with 8 styles, style transfer, sketch-to-art, variations
+- **adk-rust-mcp-graphics** — Image editing, object removal, background swap, resize, enhance
+- **New models** — Veo 3.1 (generate/fast/lite), Lyria 3 Pro/Clip, Gemini 3.1 Flash Image (Nano Banana 2)
+- **30 TTS voices** — Full voice set with 70+ language support
+- **Industry use cases** — Documentation for 10 key sectors
+
+### Fixed
+- Tracing output directed to stderr for stdio MCP transport
+- Correct WebSocket protocol for Lyria RealTime (BidiGenerateMusic)
+- Skip `storageUri` for Gemini API video requests
+- Proper base64 audio decoding from WebSocket binary frames
+
+### Changed
+- Common crate uses local path dependency for development
+- All README images use absolute GitHub raw URLs (crates.io compatible)
+
+## [0.3.0] - 2026-04-28
+
+### Added
+- Initial release with 6 MCP servers
+- Image generation (Imagen 3/4) and upscaling
+- Video generation (Veo 2/3) with LRO polling
+- Music generation (Lyria 1.0)
+- Speech synthesis (Chirp3-HD)
+- Multimodal generation (Gemini 2.0 Flash)
+- FFmpeg audio/video processing (8 tools)
+- Stdio, HTTP, and SSE transport support
+- GCS upload/download
+- OpenTelemetry tracing (optional)
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
