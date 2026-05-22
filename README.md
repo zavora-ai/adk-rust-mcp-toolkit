@@ -65,6 +65,10 @@ https://github.com/user-attachments/assets/video_test.mp4
   <a href="docs/assets/podcast_example.wav">Download podcast sample</a>
 </audio>
 
+### 📊 Presentation Generation
+
+<video src="docs/assets/presentation_example.mp4" width="640" controls></video>
+
 ## Servers
 
 | Server | Description | Tools |
