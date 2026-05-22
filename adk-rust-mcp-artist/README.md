@@ -14,8 +14,8 @@ Create art in specific styles, transfer styles between images, turn sketches int
 <td align="center"><strong>Style Transfer</strong></td>
 </tr>
 <tr>
-<td><img src="../docs/assets/artist_example.png" width="300" alt="Oil painting"/></td>
-<td><img src="../docs/assets/graphics_example.png" width="300" alt="Edited"/></td>
+<td><img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/artist_example.png" width="300" alt="Oil painting"/></td>
+<td><img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/graphics_example.png" width="300" alt="Edited"/></td>
 </tr>
 </table>
 

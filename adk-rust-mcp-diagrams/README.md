@@ -8,7 +8,7 @@ Generate precise, editable diagrams from natural language descriptions. Outputs 
 
 ## Example Output
 
-<img src="../docs/assets/diagram_example.svg" width="600" alt="CI/CD flowchart"/>
+<img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/diagram_example.svg" width="600" alt="CI/CD flowchart"/>
 
 > **Prompt:** "CI/CD pipeline: developer pushes code, triggers build, runs tests, if tests pass deploy to staging, then deploy to production"
 

@@ -102,15 +102,15 @@ Generate step-by-step animated explanations of concepts.
 
 ### Whiteboard
 
-<img src="../docs/assets/education/whiteboard_math.png" width="500" alt="Math whiteboard"/>
+<img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/education/whiteboard_math.png" width="500" alt="Math whiteboard"/>
 
 ### Flashcards
 
-<img src="../docs/assets/education/card_01_front.png" width="300" alt="Flashcard front"/>
+<img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/education/card_01_front.png" width="300" alt="Flashcard front"/>
 
 ### Quiz
 
-<img src="../docs/assets/education/question_01.png" width="400" alt="Quiz question"/>
+<img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/education/question_01.png" width="400" alt="Quiz question"/>
 
 ### Story & Explainer
 

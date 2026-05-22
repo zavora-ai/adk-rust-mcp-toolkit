@@ -24,8 +24,8 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 <td align="center"><strong>Multimodal</strong></td>
 </tr>
 <tr>
-<td><img src="docs/assets/cat_rain.png" width="300" alt="Generated cat in rain"/></td>
-<td><img src="docs/assets/multimodal_test.png" width="300" alt="Multimodal generation"/></td>
+<td><img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/cat_rain.png" width="300" alt="Generated cat in rain"/></td>
+<td><img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/multimodal_test.png" width="300" alt="Multimodal generation"/></td>
 </tr>
 </table>
 
@@ -33,61 +33,61 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 ### 🎬 Video Generation
 
-<video src="docs/assets/video_test.mp4" width="640" controls></video>
+<video src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/video_test.mp4" width="640" controls></video>
 
 > **Prompt:** "A drone shot flying over a misty mountain valley at sunrise, cinematic" — *Model: veo-3.1-generate-preview*
 
 ### 🎵 Music Generation
 
-<audio controls src="docs/assets/music_test.mp3">
-  <a href="docs/assets/music_test.mp3">Download music sample</a>
+<audio controls src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/music_test.mp3">
+  <a href="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/music_test.mp3">Download music sample</a>
 </audio>
 
 > **Prompt:** "An epic cinematic orchestral piece about a journey home. Starts with a solo piano intro, builds through sweeping strings." — *Model: lyria-3-pro-preview*
 
 ### 🗣️ Speech Synthesis
 
-<audio controls src="docs/assets/speech_test.wav">
-  <a href="docs/assets/speech_test.wav">Download speech sample</a>
+<audio controls src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/speech_test.wav">
+  <a href="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/speech_test.wav">Download speech sample</a>
 </audio>
 
 > **Prompt:** "Say cheerfully: Have a wonderful day!" — *Voice: Kore, Model: gemini-2.5-flash-preview-tts*
 
 ### 🎭 Meme Generation
 
-<img src="docs/assets/meme_example.png" width="400" alt="Generated meme"/>
+<img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/meme_example.png" width="400" alt="Generated meme"/>
 
 > **Prompt:** "a cat sitting at a computer looking confused at code" — *Top: "WHEN THE CODE WORKS", Bottom: "BUT YOU DONT KNOW WHY"*
 
 ### 🎞️ GIF Generation
 
-<img src="docs/assets/gif_example.gif" width="400" alt="Generated GIF"/>
+<img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/gif_example.gif" width="400" alt="Generated GIF"/>
 
 > **Prompt:** "A cute robot waving hello, colorful cartoon style, looping animation"
 
 ### 📱 Short-Form Video
 
-<video src="docs/assets/short_example.mp4" width="270" controls></video>
+<video src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/short_example.mp4" width="270" controls></video>
 
 > **Prompt:** "A timelapse of a flower blooming in a garden, vibrant colors, close-up macro shot" — *Caption: "Nature is beautiful 🌸"*
 
 ### 🎙️ Podcast Generation
 
-<audio controls src="docs/assets/podcast_example.wav">
-  <a href="docs/assets/podcast_example.wav">Download podcast sample</a>
+<audio controls src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/podcast_example.wav">
+  <a href="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/podcast_example.wav">Download podcast sample</a>
 </audio>
 
 > **Script:** Host (Kore): "Welcome to AI Weekly!" → Guest (Puck): "Thanks for having me..." — *Background: "soft ambient electronic"*
 
 ### 📊 Presentation Generation
 
-<video src="docs/assets/presentation_example.mp4" width="640" controls></video>
+<video src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/presentation_example.mp4" width="640" controls></video>
 
 > **Slides:** "ADK Rust MCP Toolkit" → "Dual API Support" → "Seven Servers" — *Voice: Kore, Music: "soft ambient corporate"*
 
 ### 📐 Diagram Generation
 
-<img src="docs/assets/diagram_example.svg" width="600" alt="CI/CD flowchart"/>
+<img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/diagram_example.svg" width="600" alt="CI/CD flowchart"/>
 
 > **Prompt:** "CI/CD pipeline: developer pushes code, triggers build, runs tests, if tests pass deploy to staging, then deploy to production" — *Format: SVG, Type: flowchart*
 
@@ -99,8 +99,8 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 <td align="center"><strong>Edited (Added Balloon)</strong></td>
 </tr>
 <tr>
-<td><img src="docs/assets/artist_example.png" width="300" alt="Oil painting"/></td>
-<td><img src="docs/assets/graphics_example.png" width="300" alt="Edited with balloon"/></td>
+<td><img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/artist_example.png" width="300" alt="Oil painting"/></td>
+<td><img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/graphics_example.png" width="300" alt="Edited with balloon"/></td>
 </tr>
 </table>
 
@@ -112,7 +112,7 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 **Whiteboard** — Step-by-step math solutions and diagrams:
 
-<img src="docs/assets/education/whiteboard_math.png" width="500" alt="Whiteboard math solution"/>
+<img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/education/whiteboard_math.png" width="500" alt="Whiteboard math solution"/>
 
 > **Prompt:** "Solve step by step: 2x + 5 = 15" — *Style: whiteboard, show_steps: true*
 
@@ -120,8 +120,8 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 <table>
 <tr>
-<td><img src="docs/assets/education/card_01_front.png" width="250" alt="Flashcard front"/></td>
-<td><img src="docs/assets/education/card_01_back.png" width="250" alt="Flashcard back"/></td>
+<td><img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/education/card_01_front.png" width="250" alt="Flashcard front"/></td>
+<td><img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/education/card_01_back.png" width="250" alt="Flashcard back"/></td>
 </tr>
 </table>
 
@@ -129,7 +129,7 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 **Quiz** — Multiple-choice with illustrated questions:
 
-<img src="docs/assets/education/question_01.png" width="400" alt="Quiz question"/>
+<img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/education/question_01.png" width="400" alt="Quiz question"/>
 
 > **Topic:** "Dinosaurs" — *Questions: 3, Difficulty: easy, Age group: 8-10*
 
@@ -137,8 +137,8 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 <table>
 <tr>
-<td align="center"><strong>Story</strong><br/><video src="docs/assets/education/story_turtle.mp4" width="300" controls></video></td>
-<td align="center"><strong>Explainer</strong><br/><video src="docs/assets/education/explainer_water_cycle.mp4" width="300" controls></video></td>
+<td align="center"><strong>Story</strong><br/><video src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/education/story_turtle.mp4" width="300" controls></video></td>
+<td align="center"><strong>Explainer</strong><br/><video src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/education/explainer_water_cycle.mp4" width="300" controls></video></td>
 </tr>
 </table>
 

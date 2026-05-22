@@ -14,8 +14,8 @@ Edit images with natural language — remove objects, swap backgrounds, resize w
 <td align="center"><strong>After: "Add a hot air balloon"</strong></td>
 </tr>
 <tr>
-<td><img src="../docs/assets/artist_example.png" width="300" alt="Original"/></td>
-<td><img src="../docs/assets/graphics_example.png" width="300" alt="Edited"/></td>
+<td><img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/artist_example.png" width="300" alt="Original"/></td>
+<td><img src="https://raw.githubusercontent.com/zavora-ai/adk-rust-mcp-toolkit/main/docs/assets/graphics_example.png" width="300" alt="Edited"/></td>
 </tr>
 </table>
 
