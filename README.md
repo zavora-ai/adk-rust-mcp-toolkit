@@ -277,6 +277,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-LIST:START -->
+| [<img src="https://github.com/jkmaina.png" width="80px;" alt=""/><br /><sub><b>James Karanja Maina</b></sub>](https://github.com/jkmaina) |
+|:---:|
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
 ## License
 
 Apache-2.0 — see [LICENSE](LICENSE) for details.
