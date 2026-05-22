@@ -1,21 +1,22 @@
 # adk-rust-mcp-multimodal
 
-MCP server for multimodal generation. Part of the ADK Rust MCP toolkit.
+MCP server for Gemini multimodal generation. Part of the [ADK Rust MCP toolkit](https://github.com/zavora-ai/adk-rust-mcp-toolkit).
 
 ## Overview
 
-Provider-agnostic multimodal generation server using large language models with native image and audio capabilities.
+Multimodal generation server using Google's Gemini API for image generation and text-to-speech with style control. Uses Gemini's native multimodal capabilities for quick prototyping and creative workflows.
 
-**Currently implemented:** Google Gemini API
-
-**Planned:** OpenAI GPT-4o, Anthropic Claude
+**Currently implemented:** Google Gemini API (gemini-2.5-flash-image, gemini-2.5-flash-preview-tts)
 
 ## Features
 
-- **Image Generation** - Generate images from text prompts
-- **Text-to-Speech** - Convert text to speech with style control
-- **Voice Selection** - Multiple expressive voices
-- **Style Control** - Adjust speech tone (cheerful, calm, etc.)
+- **Image Generation** — Text-to-image with Gemini's native image output
+- **Text-to-Speech** — 30 expressive voices with style/tone control
+- **Style Control** — Cheerful, calm, sad, angry, fearful, surprised tones
+- **30 Voices** — Kore, Puck, Zephyr, Charon, Fenrir, Aoede, and 24 more
+- **34 Languages** — Auto-detected from input text
+- **Flexible Output** — Return base64 or save to local file
+- **Dual API** — Works with Gemini API key or Vertex AI ADC
 
 ## Installation
 
@@ -26,86 +27,93 @@ cargo install adk-rust-mcp-multimodal
 ## Configuration
 
 ```bash
+# Option 1: Gemini API (recommended for getting started)
+export GEMINI_API_KEY=your-api-key
+
+# Option 2: Vertex AI (for production/enterprise)
 export PROJECT_ID=your-gcp-project
 export LOCATION=us-central1
-```
-
-## Usage
-
-```bash
-# Stdio transport
-adk-rust-mcp-multimodal
-
-# HTTP transport
-adk-rust-mcp-multimodal --transport http --port 8080
-```
-
-### MCP Client Configuration
-
-**Important:** The `cwd` field is required for file output with relative paths.
-
-```json
-{
-  "mcpServers": {
-    "multimodal": {
-      "command": "/path/to/adk-rust-mcp-multimodal",
-      "args": ["--transport", "stdio"],
-      "cwd": "/path/to/workspace",
-      "env": {
-        "PROJECT_ID": "your-project"
-      }
-    }
-  }
-}
 ```
 
 ## Tools
 
 ### multimodal_image_generate
 
-| Parameter | Type | Required | Default |
-|-----------|------|----------|---------|
-| `prompt` | string | Yes | - |
-| `model` | string | No | `gemini-2.0-flash-preview-image-generation` |
-| `output_file` | string | No | - |
+Generate images from text prompts using Gemini.
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `prompt` | string | Yes | — | Text describing the image |
+| `model` | string | No | `gemini-2.5-flash-image` | Model ID |
+| `output_file` | string | No | — | Save to local file path |
 
 ### multimodal_speech_synthesize
 
-| Parameter | Type | Required | Default |
-|-----------|------|----------|---------|
-| `text` | string | Yes | - |
-| `voice` | string | No | `Kore` |
-| `style` | string | No | - |
-| `output_file` | string | No | - |
+Convert text to speech with style control using Gemini TTS.
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `text` | string | Yes | — | Text to synthesize |
+| `voice` | string | No | `Kore` | Voice name (30 available) |
+| `style` | string | No | — | Delivery style/tone |
+| `model` | string | No | `gemini-2.5-flash-preview-tts` | Model ID |
+| `output_file` | string | No | — | Save to local file path |
 
 ### multimodal_list_voices
 
-List available voices.
+List all available Gemini TTS voices.
+
+## Usage Examples
+
+```bash
+# Stdio (default) — for Claude Desktop, Kiro
+adk-rust-mcp-multimodal
+
+# HTTP — for web apps, ADK agents
+adk-rust-mcp-multimodal --transport http --port 8080
+
+# SSE — for streaming applications
+adk-rust-mcp-multimodal --transport sse --port 8080
+```
+
+### Generate an image
+
+```
+prompt: "A serene Japanese garden with cherry blossoms and a koi pond"
+output_file: "garden.png"
+```
+
+### Synthesize speech with style
+
+```
+text: "Great news! Your package has been delivered."
+voice: "Puck"
+style: "cheerful"
+output_file: "notification.wav"
+```
 
 ## Available Voices
 
-Zephyr, Puck, Charon, Kore, Fenrir, Leda, Orus, Aoede
+Zephyr, Puck, Charon, Kore, Fenrir, Leda, Orus, Aoede, Callirrhoe, Autonoe, Enceladus, Iapetus, Umbriel, Algieba, Despina, Erinome, Algenib, Rasalgethi, Laomedeia, Achernar, Alnilam, Schedar, Gacrux, Pulcherrima, Achird, Zubenelgenubi, Vindemiatrix, Sadachbia, Sadaltager, Sulafat
 
 ## Available Styles
 
-neutral, cheerful, sad, angry, fearful, surprised, calm
-
-## Resources
-
-- `multimodal://language_codes` - Supported languages
-- `multimodal://voices` - Available voices
+`neutral`, `cheerful`, `sad`, `angry`, `fearful`, `surprised`, `calm`
 
 ## Comparison with Other Servers
 
 | Feature | multimodal | image | speech |
 |---------|------------|-------|--------|
-| Image Gen | Gemini | Imagen (higher quality) | - |
-| TTS | Gemini (style control) | - | Cloud TTS (more voices) |
-| Best For | Quick prototyping | Production images | Production TTS |
+| Image Gen | Gemini (fast, creative) | Imagen (higher fidelity) | — |
+| TTS | Gemini (style control) | — | Cloud TTS (more languages) |
+| Best For | Quick prototyping, style TTS | Production images | Production TTS |
 
-## Example Output
+## Output Specs
 
-<img src="../docs/assets/multimodal_test.png" width="512" alt="Multimodal image generation"/>
+| Output | Format | Details |
+|--------|--------|---------|
+| Images | PNG | Variable resolution |
+| Speech | WAV (PCM) | 24kHz mono, 16-bit |
 
 ## License
 

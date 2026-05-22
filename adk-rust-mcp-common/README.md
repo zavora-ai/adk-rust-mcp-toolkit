@@ -1,74 +1,55 @@
 # adk-rust-mcp-common
 
-Shared utilities and infrastructure for ADK Rust MCP Media servers.
+Shared library for ADK Rust MCP media servers. Part of the [ADK Rust MCP toolkit](https://github.com/zavora-ai/adk-rust-mcp-toolkit).
 
 ## Overview
 
-This crate provides common functionality used across all MCP servers in the ADK Rust MCP toolkit. It's designed with provider abstraction in mind, enabling support for multiple AI backends.
+Common infrastructure crate providing configuration, authentication, GCS storage, transport abstraction, and model registry used by all MCP media servers in the workspace.
 
-```
-┌─────────────────────────────────────────────────┐
-│                  MCP Servers                     │
-├─────────────────────────────────────────────────┤
-│              Provider Abstraction                │
-├──────────┬──────────┬──────────┬────────────────┤
-│  Google  │   AWS    │  Azure   │   Local/OSS    │
-│ Vertex AI│ Bedrock  │ OpenAI   │   Ollama etc   │
-└──────────┴──────────┴──────────┴────────────────┘
-```
-
-**Currently implemented:** Google Cloud (Vertex AI, Cloud TTS, Gemini)
+**Currently implemented:** Google Cloud (Vertex AI, Cloud TTS, Gemini API)
 
 **Planned:** AWS Bedrock, Azure OpenAI, Local/self-hosted models
 
 ## Features
 
-- **Authentication** - Google Cloud ADC and service account support (extensible to other providers)
-- **Configuration** - Environment-based configuration loading
-- **GCS Client** - Google Cloud Storage upload/download operations
-- **Error Handling** - Unified error types across servers
-- **Transport** - MCP transport abstraction (stdio, HTTP, SSE)
-- **Server Builder** - Simplified MCP server construction
-- **Model Registry** - Centralized model definitions and aliases
+- **Configuration** — Environment-based config with dual API support (Gemini API key or Vertex AI ADC)
+- **Authentication** — Google Cloud ADC, service account, and API key support
+- **GCS Client** — Upload, download, and existence checks for Google Cloud Storage
+- **Transport** — MCP transport abstraction (stdio, HTTP, SSE)
+- **Server Builder** — Simplified MCP server construction with transport selection
+- **Model Registry** — Centralized model definitions, aliases, and capability lookups
+- **Error Handling** — Unified error types across all servers
+- **Tracing** — Structured logging with optional OpenTelemetry support
 
 ## Installation
 
-Add to your `Cargo.toml`:
-
 ```toml
 [dependencies]
-adk-rust-mcp-common = "0.1"
+adk-rust-mcp-common = "0.3"
 ```
 
-## Optional Features
+## Configuration
 
-- `otel` - Enable OpenTelemetry tracing support
+```bash
+# Option 1: Gemini API (recommended for getting started)
+export GEMINI_API_KEY=your-api-key
 
-```toml
-[dependencies]
-adk-rust-mcp-common = { version = "0.1", features = ["otel"] }
+# Option 2: Vertex AI (for production/enterprise)
+export PROJECT_ID=your-gcp-project
+export LOCATION=us-central1       # optional, default: us-central1
+export GCS_BUCKET=your-bucket     # optional, for cloud storage output
+export PORT=8080                  # optional, for HTTP/SSE transport
 ```
 
 ## Usage
 
-### Configuration
+### Config
 
 ```rust
 use adk_rust_mcp_common::Config;
 
-// Load from environment variables
 let config = Config::from_env()?;
-println!("Project: {}", config.project_id);
-println!("Location: {}", config.location);
 ```
-
-Required environment variables:
-- `PROJECT_ID` - Google Cloud project ID
-
-Optional:
-- `LOCATION` - GCP region (default: `us-central1`)
-- `GCS_BUCKET` - Default GCS bucket for outputs
-- `PORT` - HTTP/SSE server port (default: `8080`)
 
 ### Authentication
 
@@ -85,24 +66,15 @@ let token = auth.get_token(&["https://www.googleapis.com/auth/cloud-platform"]).
 use adk_rust_mcp_common::gcs::{GcsClient, GcsUri};
 
 let gcs = GcsClient::with_auth(auth);
-
-// Parse URI
 let uri = GcsUri::parse("gs://my-bucket/path/to/file.png")?;
-
-// Upload
 gcs.upload(&uri, &data, "image/png").await?;
-
-// Download
 let data = gcs.download(&uri).await?;
 ```
 
-### MCP Server Builder
+### Server Builder
 
 ```rust
 use adk_rust_mcp_common::{McpServerBuilder, TransportArgs};
-
-let server = MyServer::new(config);
-let transport = args.transport.into_transport();
 
 McpServerBuilder::new(server)
     .with_transport(transport)
@@ -111,8 +83,6 @@ McpServerBuilder::new(server)
 ```
 
 ### Transport Options
-
-All servers support three transport modes:
 
 | Transport | Use Case | Flag |
 |-----------|----------|------|
@@ -125,27 +95,15 @@ All servers support three transport modes:
 ```rust
 use adk_rust_mcp_common::models::ModelRegistry;
 
-// Resolve model aliases
-let model = ModelRegistry::resolve_imagen("imagen-4");
-// Returns: Some(ImagenModel { id: "imagen-4.0-generate-preview-06-06", ... })
-
-let model = ModelRegistry::resolve_veo("veo-3");
-// Returns: Some(VeoModel { id: "veo-3.0-generate-preview", ... })
+let model = ModelRegistry::resolve_imagen("imagen-3");
+let model = ModelRegistry::resolve_veo("veo-3.1");
 ```
 
-## Error Handling
+## Optional Features
 
-```rust
-use adk_rust_mcp_common::error::Error;
-
-// Validation error
-return Err(Error::validation("Invalid parameter"));
-
-// API error
-return Err(Error::api("https://api.example.com", 400, "Bad request"));
-
-// Storage error
-return Err(Error::gcs("Upload failed"));
+```toml
+# OpenTelemetry tracing support
+adk-rust-mcp-common = { version = "0.3", features = ["otel"] }
 ```
 
 ## License
