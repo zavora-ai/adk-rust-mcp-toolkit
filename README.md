@@ -91,6 +91,23 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 > **Prompt:** "CI/CD pipeline: developer pushes code, triggers build, runs tests, if tests pass deploy to staging, then deploy to production" — *Format: SVG, Type: flowchart*
 
+### 🎨 Artist Tools
+
+<table>
+<tr>
+<td align="center"><strong>Original (Oil Painting)</strong></td>
+<td align="center"><strong>Edited (Added Balloon)</strong></td>
+</tr>
+<tr>
+<td><img src="docs/assets/artist_example.png" width="300" alt="Oil painting"/></td>
+<td><img src="docs/assets/graphics_example.png" width="300" alt="Edited with balloon"/></td>
+</tr>
+</table>
+
+> **Artist:** "A peaceful countryside village at sunset with rolling hills and a winding river" — *Style: oil_painting*
+>
+> **Graphics Edit:** "Add a hot air balloon floating in the sky" — *Input: the oil painting above*
+
 ### 📚 Education Tools
 
 **Whiteboard** — Step-by-step math solutions and diagrams:
@@ -141,6 +158,8 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 | [`adk-rust-mcp-composer`](adk-rust-mcp-composer/) | Composite media | `gif_generate`, `short_generate`, `meme_generate`, `presentation_generate`, `podcast_generate` |
 | [`adk-rust-mcp-education`](adk-rust-mcp-education/) | Educational content | `whiteboard_generate`, `flashcard_generate`, `story_generate`, `quiz_generate`, `explainer_generate` |
 | [`adk-rust-mcp-diagrams`](adk-rust-mcp-diagrams/) | Structured diagrams | `diagram_generate`, `diagram_from_code`, `diagram_to_code` |
+| [`adk-rust-mcp-artist`](adk-rust-mcp-artist/) | Art creation & style | `artist_create`, `artist_style_transfer`, `artist_sketch_to_art`, `artist_variations` |
+| [`adk-rust-mcp-graphics`](adk-rust-mcp-graphics/) | Image editing | `graphics_edit`, `graphics_remove_object`, `graphics_replace_background`, `graphics_resize`, `graphics_enhance` |
 | [`adk-rust-mcp-avtool`](adk-rust-mcp-avtool/) | FFmpeg processing | `ffmpeg_*` (8 tools) |
 
 ## Quick Start
