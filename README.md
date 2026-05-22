@@ -8,12 +8,13 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 ## Features
 
-- **🖼️ Image Generation** — Text-to-image with Imagen 4, upscaling up to 4x
-- **🎬 Video Generation** — Text-to-video, image-to-video, video extension with Veo 3
-- **🎵 Music Generation** — Instrumental music from text prompts with Lyria
-- **🗣️ Speech Synthesis** — High-quality TTS with Chirp3-HD and Gemini voices
+- **🖼️ Image Generation** — Text-to-image with Imagen 3 and Gemini multimodal models
+- **🎬 Video Generation** — Text-to-video, image-to-video, video extension with Veo 3.1
+- **🎵 Music Generation** — Full songs with Lyria 3 Pro/Clip, real-time streaming with Lyria RealTime
+- **🗣️ Speech Synthesis** — High-quality TTS with Chirp3-HD and Gemini voices (30 voices, 70+ languages)
 - **🎛️ Media Processing** — FFmpeg-powered audio/video manipulation
 - **🔌 Multiple Transports** — Stdio, HTTP, and SSE for any integration scenario
+- **🔑 Dual API Support** — Works with both Vertex AI (ADC) and Gemini API (API key)
 
 ## Example Outputs
 
@@ -52,9 +53,9 @@ https://github.com/user-attachments/assets/video_test.mp4
 |--------|-------------|-------|
 | [`adk-rust-mcp-image`](adk-rust-mcp-image/) | Image generation & upscaling | `image_generate`, `image_upscale` |
 | [`adk-rust-mcp-video`](adk-rust-mcp-video/) | Video generation | `video_generate`, `video_from_image`, `video_extend` |
-| [`adk-rust-mcp-music`](adk-rust-mcp-music/) | Music generation | `music_generate` |
+| [`adk-rust-mcp-music`](adk-rust-mcp-music/) | Music generation & real-time streaming | `music_generate`, `music_realtime_start`, `music_realtime_steer`, `music_realtime_stop` |
 | [`adk-rust-mcp-speech`](adk-rust-mcp-speech/) | Text-to-speech | `speech_synthesize`, `speech_list_voices` |
-| [`adk-rust-mcp-multimodal`](adk-rust-mcp-multimodal/) | Gemini multimodal | `multimodal_image_generate`, `multimodal_speech_synthesize` |
+| [`adk-rust-mcp-multimodal`](adk-rust-mcp-multimodal/) | Gemini multimodal | `multimodal_image_generate`, `multimodal_speech_synthesize`, `multimodal_list_voices` |
 | [`adk-rust-mcp-avtool`](adk-rust-mcp-avtool/) | FFmpeg processing | `ffmpeg_*` (8 tools) |
 
 ## Quick Start
@@ -62,8 +63,8 @@ https://github.com/user-attachments/assets/video_test.mp4
 ### Prerequisites
 
 - Rust 1.85+ (2024 edition)
-- Google Cloud project with Vertex AI enabled
-- `gcloud` CLI authenticated
+- Google Cloud project with Vertex AI enabled, **or** a Gemini API key
+- `gcloud` CLI authenticated (for Vertex AI)
 - FFmpeg (for avtool only)
 
 ### Installation
@@ -82,10 +83,16 @@ cargo build --release
 ### Configuration
 
 ```bash
+# Option 1: Gemini API (recommended for getting started)
+export GEMINI_API_KEY=your-api-key  # from https://aistudio.google.com/apikey
+
+# Option 2: Vertex AI (for production/enterprise)
 export PROJECT_ID=your-gcp-project
 export LOCATION=us-central1
-export GCS_BUCKET=your-bucket  # Required for video generation
+export GCS_BUCKET=your-bucket  # Required for video generation on Vertex
 ```
+
+The servers auto-detect which API to use: if `GEMINI_API_KEY` is set, they use the Gemini API; otherwise they use Vertex AI with Application Default Credentials.
 
 ### Run a Server
 
