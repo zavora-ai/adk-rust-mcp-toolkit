@@ -29,9 +29,13 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 </tr>
 </table>
 
+> **Prompt:** "A photorealistic cat sitting in the rain on a cobblestone street, cinematic lighting"
+
 ### 🎬 Video Generation
 
 <video src="docs/assets/video_test.mp4" width="640" controls></video>
+
+> **Prompt:** "A drone shot flying over a misty mountain valley at sunrise, cinematic" — *Model: veo-3.1-generate-preview*
 
 ### 🎵 Music Generation
 
@@ -39,23 +43,33 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
   <a href="docs/assets/music_test.mp3">Download music sample</a>
 </audio>
 
+> **Prompt:** "An epic cinematic orchestral piece about a journey home. Starts with a solo piano intro, builds through sweeping strings." — *Model: lyria-3-pro-preview*
+
 ### 🗣️ Speech Synthesis
 
 <audio controls src="docs/assets/speech_test.wav">
   <a href="docs/assets/speech_test.wav">Download speech sample</a>
 </audio>
 
+> **Prompt:** "Say cheerfully: Have a wonderful day!" — *Voice: Kore, Model: gemini-2.5-flash-preview-tts*
+
 ### 🎭 Meme Generation
 
 <img src="docs/assets/meme_example.png" width="400" alt="Generated meme"/>
+
+> **Prompt:** "a cat sitting at a computer looking confused at code" — *Top: "WHEN THE CODE WORKS", Bottom: "BUT YOU DONT KNOW WHY"*
 
 ### 🎞️ GIF Generation
 
 <img src="docs/assets/gif_example.gif" width="400" alt="Generated GIF"/>
 
+> **Prompt:** "A cute robot waving hello, colorful cartoon style, looping animation"
+
 ### 📱 Short-Form Video
 
 <video src="docs/assets/short_example.mp4" width="270" controls></video>
+
+> **Prompt:** "A timelapse of a flower blooming in a garden, vibrant colors, close-up macro shot" — *Caption: "Nature is beautiful 🌸"*
 
 ### 🎙️ Podcast Generation
 
@@ -63,15 +77,27 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
   <a href="docs/assets/podcast_example.wav">Download podcast sample</a>
 </audio>
 
+> **Script:** Host (Kore): "Welcome to AI Weekly!" → Guest (Puck): "Thanks for having me..." — *Background: "soft ambient electronic"*
+
 ### 📊 Presentation Generation
 
 <video src="docs/assets/presentation_example.mp4" width="640" controls></video>
+
+> **Slides:** "ADK Rust MCP Toolkit" → "Dual API Support" → "Seven Servers" — *Voice: Kore, Music: "soft ambient corporate"*
+
+### 📐 Diagram Generation
+
+<img src="docs/assets/diagram_example.svg" width="600" alt="CI/CD flowchart"/>
+
+> **Prompt:** "CI/CD pipeline: developer pushes code, triggers build, runs tests, if tests pass deploy to staging, then deploy to production" — *Format: SVG, Type: flowchart*
 
 ### 📚 Education Tools
 
 **Whiteboard** — Step-by-step math solutions and diagrams:
 
 <img src="docs/assets/education/whiteboard_math.png" width="500" alt="Whiteboard math solution"/>
+
+> **Prompt:** "Solve step by step: 2x + 5 = 15" — *Style: whiteboard, show_steps: true*
 
 **Flashcards** — Visual Q&A cards for any topic:
 
@@ -82,9 +108,13 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 </tr>
 </table>
 
+> **Topic:** "Solar system planets" — *Count: 3, Age group: 7-9*
+
 **Quiz** — Multiple-choice with illustrated questions:
 
 <img src="docs/assets/education/question_01.png" width="400" alt="Quiz question"/>
+
+> **Topic:** "Dinosaurs" — *Questions: 3, Difficulty: easy, Age group: 8-10*
 
 **Story & Explainer** — Narrated illustrated videos:
 
@@ -94,6 +124,10 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 <td align="center"><strong>Explainer</strong><br/><video src="docs/assets/education/explainer_water_cycle.mp4" width="300" controls></video></td>
 </tr>
 </table>
+
+> **Story:** "A brave little turtle who learns to swim" — *Style: watercolor, Voice: Aoede, Moral: "Practice makes perfect"*
+>
+> **Explainer:** "How does the water cycle work?" — *Style: diagram, Pace: slow, Age group: 8-10*
 
 ## Servers
 
@@ -106,6 +140,7 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 | [`adk-rust-mcp-multimodal`](adk-rust-mcp-multimodal/) | Gemini multimodal | `multimodal_image_generate`, `multimodal_speech_synthesize`, `multimodal_list_voices` |
 | [`adk-rust-mcp-composer`](adk-rust-mcp-composer/) | Composite media | `gif_generate`, `short_generate`, `meme_generate`, `presentation_generate`, `podcast_generate` |
 | [`adk-rust-mcp-education`](adk-rust-mcp-education/) | Educational content | `whiteboard_generate`, `flashcard_generate`, `story_generate`, `quiz_generate`, `explainer_generate` |
+| [`adk-rust-mcp-diagrams`](adk-rust-mcp-diagrams/) | Structured diagrams | `diagram_generate`, `diagram_from_code`, `diagram_to_code` |
 | [`adk-rust-mcp-avtool`](adk-rust-mcp-avtool/) | FFmpeg processing | `ffmpeg_*` (8 tools) |
 
 ## Quick Start
