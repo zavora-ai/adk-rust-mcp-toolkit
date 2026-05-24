@@ -19,7 +19,6 @@ use rmcp::{
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
-use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
@@ -218,17 +217,12 @@ impl AVToolServer {
 
 impl ServerHandler for AVToolServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            instructions: Some(
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_instructions(
                 "Audio/video processing server using FFmpeg. \
                  Provides tools for media conversion, combining, and manipulation."
                     .to_string(),
-            ),
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
-            ..Default::default()
-        }
+            )
     }
 
     fn list_tools(
@@ -371,16 +365,7 @@ fn create_tool<T: JsonSchema>(name: &'static str, description: &'static str) -> 
         _ => Arc::new(serde_json::Map::new()),
     };
 
-    rmcp::model::Tool {
-        name: Cow::Borrowed(name),
-        description: Some(Cow::Borrowed(description)),
-        input_schema,
-        annotations: None,
-        icons: None,
-        meta: None,
-        output_schema: None,
-        title: None,
-    }
+    rmcp::model::Tool::new(name, description, input_schema)
 }
 
 /// Parse tool parameters from JSON arguments.

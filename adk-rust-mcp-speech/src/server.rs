@@ -18,7 +18,6 @@ use rmcp::{
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
-use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, info};
@@ -183,16 +182,13 @@ impl SpeechServer {
 
 impl ServerHandler for SpeechServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            instructions: Some(
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_instructions(
                 "Text-to-speech server using Google Cloud TTS Chirp3-HD API. \
                  Use the speech_synthesize tool to convert text to speech, \
                  and speech_list_voices to see available voices."
                     .to_string(),
-            ),
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            ..Default::default()
-        }
+            )
     }
 
     fn list_tools(
@@ -220,32 +216,18 @@ impl ServerHandler for SpeechServer {
 
             Ok(ListToolsResult {
                 tools: vec![
-                    Tool {
-                        name: Cow::Borrowed("speech_synthesize"),
-                        description: Some(Cow::Borrowed(
-                            "Convert text to speech using Google Cloud TTS Chirp3-HD voices. \
+                    Tool::new(
+                        "speech_synthesize",
+                        "Convert text to speech using Google Cloud TTS Chirp3-HD voices. \
                              Returns base64-encoded WAV audio or saves to a local file. \
                              Supports custom pronunciations using IPA or X-SAMPA phonetic alphabets.",
-                        )),
-                        input_schema: synth_input_schema,
-                        annotations: None,
-                        icons: None,
-                        meta: None,
-                        output_schema: None,
-                        title: None,
-                    },
-                    Tool {
-                        name: Cow::Borrowed("speech_list_voices"),
-                        description: Some(Cow::Borrowed(
-                            "List available Chirp3-HD voices with their supported languages.",
-                        )),
-                        input_schema: empty_schema,
-                        annotations: None,
-                        icons: None,
-                        meta: None,
-                        output_schema: None,
-                        title: None,
-                    },
+                        synth_input_schema,
+                    ),
+                    Tool::new(
+                        "speech_list_voices",
+                        "List available Chirp3-HD voices with their supported languages.",
+                        empty_schema,
+                    ),
                 ],
                 next_cursor: None,
                 meta: None,

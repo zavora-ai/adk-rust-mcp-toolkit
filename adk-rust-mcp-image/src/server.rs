@@ -18,7 +18,6 @@ use rmcp::{
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
-use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, info};
@@ -196,19 +195,13 @@ impl ImageServer {
 
 impl ServerHandler for ImageServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            instructions: Some(
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().enable_resources().build())
+            .with_instructions(
                 "Image generation and processing server using Google Vertex AI Imagen API. \
                  Use image_generate to create images from text prompts, \
                  and image_upscale to upscale existing images."
                     .to_string(),
-            ),
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .enable_resources()
-                .build(),
-            ..Default::default()
-        }
+            )
     }
 
     fn list_tools(
@@ -238,35 +231,21 @@ impl ServerHandler for ImageServer {
 
             Ok(ListToolsResult {
                 tools: vec![
-                    Tool {
-                        name: Cow::Borrowed("image_generate"),
-                        description: Some(Cow::Borrowed(
-                            "Generate images from a text prompt using Google's Imagen API. \
+                    Tool::new(
+                        "image_generate",
+                        "Generate images from a text prompt using Google's Imagen API. \
                              Returns base64-encoded image data, local file paths, or storage URIs \
-                             depending on output parameters."
-                        )),
-                        input_schema: gen_input_schema,
-                        annotations: None,
-                        icons: None,
-                        meta: None,
-                        output_schema: None,
-                        title: None,
-                    },
-                    Tool {
-                        name: Cow::Borrowed("image_upscale"),
-                        description: Some(Cow::Borrowed(
-                            "Upscale an image using Google's Imagen 4.0 Upscale API. \
+                             depending on output parameters.",
+                        gen_input_schema,
+                    ),
+                    Tool::new(
+                        "image_upscale",
+                        "Upscale an image using Google's Imagen 4.0 Upscale API. \
                              Supports x2 and x4 upscale factors. \
                              Accepts base64 image data, local file path, or GCS URI as input. \
-                             Returns base64-encoded image data, local file path, or storage URI."
-                        )),
-                        input_schema: upscale_input_schema,
-                        annotations: None,
-                        icons: None,
-                        meta: None,
-                        output_schema: None,
-                        title: None,
-                    },
+                             Returns base64-encoded image data, local file path, or storage URI.",
+                        upscale_input_schema,
+                    ),
                 ],
                 next_cursor: None,
                 meta: None,
@@ -386,9 +365,7 @@ impl ServerHandler for ImageServer {
                 }
             };
 
-            Ok(ReadResourceResult {
-                contents: vec![ResourceContents::text(content, uri.clone())],
-            })
+            Ok(ReadResourceResult::new(vec![ResourceContents::text(content, uri.clone())]))
         }
     }
 }

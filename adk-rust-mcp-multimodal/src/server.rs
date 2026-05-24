@@ -21,7 +21,6 @@ use rmcp::{
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
-use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, info};
@@ -212,20 +211,14 @@ impl MultimodalServer {
 
 impl ServerHandler for MultimodalServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            instructions: Some(
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().enable_resources().build())
+            .with_instructions(
                 "Multimodal generation server using Google Gemini API. \
                  Use multimodal_image_generate to create images from text prompts, \
                  multimodal_speech_synthesize for text-to-speech, \
                  and multimodal_list_voices to see available voices."
                     .to_string(),
-            ),
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .enable_resources()
-                .build(),
-            ..Default::default()
-        }
+            )
     }
 
     fn list_tools(
@@ -261,45 +254,24 @@ impl ServerHandler for MultimodalServer {
 
             Ok(ListToolsResult {
                 tools: vec![
-                    Tool {
-                        name: Cow::Borrowed("multimodal_image_generate"),
-                        description: Some(Cow::Borrowed(
-                            "Generate images from a text prompt using Google's Gemini API. \
+                    Tool::new(
+                        "multimodal_image_generate",
+                        "Generate images from a text prompt using Google's Gemini API. \
                              Returns base64-encoded image data or saves to a local file.",
-                        )),
-                        input_schema: image_input_schema,
-                        annotations: None,
-                        icons: None,
-                        meta: None,
-                        output_schema: None,
-                        title: None,
-                    },
-                    Tool {
-                        name: Cow::Borrowed("multimodal_speech_synthesize"),
-                        description: Some(Cow::Borrowed(
-                            "Convert text to speech using Google's Gemini API. \
+                        image_input_schema,
+                    ),
+                    Tool::new(
+                        "multimodal_speech_synthesize",
+                        "Convert text to speech using Google's Gemini API. \
                              Supports multiple voices and style/tone control. \
                              Returns base64-encoded audio or saves to a local file.",
-                        )),
-                        input_schema: speech_input_schema,
-                        annotations: None,
-                        icons: None,
-                        meta: None,
-                        output_schema: None,
-                        title: None,
-                    },
-                    Tool {
-                        name: Cow::Borrowed("multimodal_list_voices"),
-                        description: Some(Cow::Borrowed(
-                            "List available Gemini TTS voices.",
-                        )),
-                        input_schema: empty_schema,
-                        annotations: None,
-                        icons: None,
-                        meta: None,
-                        output_schema: None,
-                        title: None,
-                    },
+                        speech_input_schema,
+                    ),
+                    Tool::new(
+                        "multimodal_list_voices",
+                        "List available Gemini TTS voices.",
+                        empty_schema,
+                    ),
                 ],
                 next_cursor: None,
                 meta: None,
@@ -411,9 +383,7 @@ impl ServerHandler for MultimodalServer {
                 }
             };
 
-            Ok(ReadResourceResult {
-                contents: vec![ResourceContents::text(content, uri.clone())],
-            })
+            Ok(ReadResourceResult::new(vec![ResourceContents::text(content, uri.clone())]))
         }
     }
 }

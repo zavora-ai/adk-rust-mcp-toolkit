@@ -90,45 +90,30 @@ mod tests {
     #[test]
     fn test_tool_validation() {
         // Valid tool
-        let valid_tool = rmcp::model::Tool {
-            name: Cow::Borrowed("test_tool"),
-            description: Some(Cow::Borrowed("A test tool")),
-            input_schema: Arc::new(serde_json::json!({
+        let valid_tool = rmcp::model::Tool::new(
+            "test_tool",
+            "A test tool",
+            Arc::new(serde_json::json!({
                 "type": "object",
                 "properties": {}
             }).as_object().unwrap().clone()),
-            annotations: None,
-            icons: None,
-            meta: None,
-            output_schema: None,
-            title: None,
-        };
+        );
         assert!(validate_tool(&valid_tool).is_ok());
 
         // Tool with empty name
-        let invalid_tool = rmcp::model::Tool {
-            name: Cow::Borrowed(""),
-            description: Some(Cow::Borrowed("A test tool")),
-            input_schema: Arc::new(serde_json::Map::new()),
-            annotations: None,
-            icons: None,
-            meta: None,
-            output_schema: None,
-            title: None,
-        };
+        let invalid_tool = rmcp::model::Tool::new(
+            "",
+            "A test tool",
+            Arc::new(serde_json::Map::new()),
+        );
         assert!(validate_tool(&invalid_tool).is_err());
 
         // Tool without description
-        let invalid_tool = rmcp::model::Tool {
-            name: Cow::Borrowed("test_tool"),
-            description: None,
-            input_schema: Arc::new(serde_json::Map::new()),
-            annotations: None,
-            icons: None,
-            meta: None,
-            output_schema: None,
-            title: None,
-        };
+        let invalid_tool = rmcp::model::Tool::new_with_raw(
+            "test_tool",
+            None,
+            Arc::new(serde_json::Map::new()),
+        );
         assert!(validate_tool(&invalid_tool).is_err());
     }
 

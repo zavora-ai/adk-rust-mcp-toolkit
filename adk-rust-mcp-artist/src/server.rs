@@ -6,7 +6,6 @@ use rmcp::{
     model::{CallToolResult, Content, ListResourcesResult, ReadResourceResult, ServerCapabilities, ServerInfo},
     ErrorData as McpError, ServerHandler,
 };
-use std::borrow::Cow;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -22,11 +21,8 @@ impl ArtistServer {
 
 impl ServerHandler for ArtistServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            instructions: Some("Artistic image creation server. Create art, transfer styles, convert sketches, and generate variations.".into()),
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            ..Default::default()
-        }
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_instructions("Artistic image creation server. Create art, transfer styles, convert sketches, and generate variations.")
     }
 
     fn list_tools(
@@ -89,8 +85,8 @@ impl ServerHandler for ArtistServer {
     }
 }
 
-fn tool(name: &'static str, desc: &'static str, schema: schemars::schema::RootSchema) -> rmcp::model::Tool {
+fn tool(name: &'static str, desc: &'static str, schema: schemars::Schema) -> rmcp::model::Tool {
     let sv = serde_json::to_value(&schema).unwrap_or_default();
     let is = match sv { serde_json::Value::Object(m) => Arc::new(m), _ => Arc::new(serde_json::Map::new()) };
-    rmcp::model::Tool { name: Cow::Borrowed(name), description: Some(Cow::Borrowed(desc)), input_schema: is, annotations: None, icons: None, meta: None, output_schema: None, title: None }
+    rmcp::model::Tool::new(name, desc, is)
 }

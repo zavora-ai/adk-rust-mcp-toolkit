@@ -36,7 +36,7 @@ base64 = "0.22"
 urlencoding = "2.1"
 gcp_auth = "0.12"
 clap = { version = "4.5", features = ["derive", "env"] }
-rmcp = { version = "0.14", features = ["server", "transport-io", "transport-streamable-http-server"] }
+rmcp = { version = "1.7", features = ["server", "transport-io", "transport-streamable-http-server"] }
 axum = "0.8"
 
 # OpenTelemetry dependencies (optional)

@@ -19,7 +19,6 @@ use rmcp::{
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
-use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, info};
@@ -272,19 +271,13 @@ impl VideoServer {
 
 impl ServerHandler for VideoServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            instructions: Some(
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().enable_resources().build())
+            .with_instructions(
                 "Video generation server using Google Vertex AI Veo API. \
                  Use video_generate for text-to-video, video_from_image for image-to-video, \
                  and video_extend to extend existing videos."
                     .to_string(),
-            ),
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .enable_resources()
-                .build(),
-            ..Default::default()
-        }
+            )
     }
 
     fn list_tools(
@@ -322,50 +315,29 @@ impl ServerHandler for VideoServer {
 
             Ok(ListToolsResult {
                 tools: vec![
-                    Tool {
-                        name: Cow::Borrowed("video_generate"),
-                        description: Some(Cow::Borrowed(
-                            "Generate video from a text prompt using Google's Veo API. \
-                             Requires a GCS URI for output. Returns the GCS URI of the generated video."
-                        )),
-                        input_schema: t2v_input_schema,
-                        annotations: None,
-                        icons: None,
-                        meta: None,
-                        output_schema: None,
-                        title: None,
-                    },
-                    Tool {
-                        name: Cow::Borrowed("video_from_image"),
-                        description: Some(Cow::Borrowed(
-                            "Generate video from an image using Google's Veo API. \
+                    Tool::new(
+                        "video_generate",
+                        "Generate video from a text prompt using Google's Veo API. \
+                             Requires a GCS URI for output. Returns the GCS URI of the generated video.",
+                        t2v_input_schema,
+                    ),
+                    Tool::new(
+                        "video_from_image",
+                        "Generate video from an image using Google's Veo API. \
                              Accepts base64 image data, local file path, or GCS URI as input. \
                              Supports interpolation mode: provide both `image` (first frame) and \
                              `last_frame_image` (last frame) to generate a video interpolating between them. \
-                             Requires a GCS URI for output. Returns the GCS URI of the generated video."
-                        )),
-                        input_schema: i2v_input_schema,
-                        annotations: None,
-                        icons: None,
-                        meta: None,
-                        output_schema: None,
-                        title: None,
-                    },
-                    Tool {
-                        name: Cow::Borrowed("video_extend"),
-                        description: Some(Cow::Borrowed(
-                            "Extend an existing video using Google's Veo API. \
+                             Requires a GCS URI for output. Returns the GCS URI of the generated video.",
+                        i2v_input_schema,
+                    ),
+                    Tool::new(
+                        "video_extend",
+                        "Extend an existing video using Google's Veo API. \
                              Takes a GCS URI of an existing video and generates additional frames \
                              based on the provided prompt. Requires a GCS URI for output. \
-                             Returns the GCS URI of the extended video."
-                        )),
-                        input_schema: extend_input_schema,
-                        annotations: None,
-                        icons: None,
-                        meta: None,
-                        output_schema: None,
-                        title: None,
-                    },
+                             Returns the GCS URI of the extended video.",
+                        extend_input_schema,
+                    ),
                 ],
                 next_cursor: None,
                 meta: None,
@@ -479,9 +451,7 @@ impl ServerHandler for VideoServer {
                 }
             };
 
-            Ok(ReadResourceResult {
-                contents: vec![ResourceContents::text(content, uri.clone())],
-            })
+            Ok(ReadResourceResult::new(vec![ResourceContents::text(content, uri.clone())]))
         }
     }
 }

@@ -6,7 +6,6 @@ use rmcp::{
     model::{CallToolResult, Content, ListResourcesResult, ReadResourceResult, ServerCapabilities, ServerInfo},
     ErrorData as McpError, ServerHandler,
 };
-use std::borrow::Cow;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -22,11 +21,8 @@ impl ComposerServer {
 
 impl ServerHandler for ComposerServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            instructions: Some("Composite media generation server. Create GIFs, shorts, memes, presentations, and podcasts from text prompts.".into()),
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            ..Default::default()
-        }
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_instructions("Composite media generation server. Create GIFs, shorts, memes, presentations, and podcasts from text prompts.")
     }
 
     fn list_tools(
@@ -35,7 +31,7 @@ impl ServerHandler for ComposerServer {
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<rmcp::model::ListToolsResult, McpError>> + Send + '_ {
         async move {
-            use rmcp::model::{ListToolsResult, Tool};
+            use rmcp::model::ListToolsResult;
             use schemars::schema_for;
 
             let tools = vec![
@@ -110,16 +106,11 @@ impl ServerHandler for ComposerServer {
     }
 }
 
-fn tool(name: &'static str, desc: &'static str, schema: schemars::schema::RootSchema) -> rmcp::model::Tool {
+fn tool(name: &'static str, desc: &'static str, schema: schemars::Schema) -> rmcp::model::Tool {
     let sv = serde_json::to_value(&schema).unwrap_or_default();
     let is = match sv {
         serde_json::Value::Object(m) => Arc::new(m),
         _ => Arc::new(serde_json::Map::new()),
     };
-    rmcp::model::Tool {
-        name: Cow::Borrowed(name),
-        description: Some(Cow::Borrowed(desc)),
-        input_schema: is,
-        annotations: None, icons: None, meta: None, output_schema: None, title: None,
-    }
+    rmcp::model::Tool::new(name, desc, is)
 }

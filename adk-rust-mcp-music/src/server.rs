@@ -20,7 +20,6 @@ use rmcp::{
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
-use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, info};
@@ -276,17 +275,12 @@ fn pcm_to_wav(pcm: &[u8], sample_rate: u32, channels: u16, bits_per_sample: u16)
 
 impl ServerHandler for MusicServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            instructions: Some(
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_instructions(
                 "Music generation server using Google Vertex AI Lyria API. \
                  Use the music_generate tool to create music from text prompts."
                     .to_string(),
-            ),
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
-            ..Default::default()
-        }
+            )
     }
 
     fn list_tools(
@@ -316,38 +310,26 @@ impl ServerHandler for MusicServer {
 
             Ok(ListToolsResult {
                 tools: vec![
-                    Tool {
-                        name: Cow::Borrowed("music_generate"),
-                        description: Some(Cow::Borrowed(
-                            "Generate music from a text prompt using Google's Lyria API. Returns base64-encoded audio data, local file paths, or GCS URIs depending on output parameters."
-                        )),
-                        input_schema: gen_is,
-                        annotations: None, icons: None, meta: None, output_schema: None, title: None,
-                    },
-                    Tool {
-                        name: Cow::Borrowed("music_realtime_start"),
-                        description: Some(Cow::Borrowed(
-                            "Start a real-time music generation session using Lyria RealTime. Returns a session ID. Audio streams continuously at 48kHz stereo. Use music_realtime_steer to change prompts/config, and music_realtime_stop to end and save the audio."
-                        )),
-                        input_schema: start_is,
-                        annotations: None, icons: None, meta: None, output_schema: None, title: None,
-                    },
-                    Tool {
-                        name: Cow::Borrowed("music_realtime_steer"),
-                        description: Some(Cow::Borrowed(
-                            "Steer an active Lyria RealTime session. Update prompts, config (BPM, scale, density, brightness), or control playback (pause/resume/reset_context)."
-                        )),
-                        input_schema: steer_is,
-                        annotations: None, icons: None, meta: None, output_schema: None, title: None,
-                    },
-                    Tool {
-                        name: Cow::Borrowed("music_realtime_stop"),
-                        description: Some(Cow::Borrowed(
-                            "Stop a Lyria RealTime session and save the accumulated audio as a WAV file (48kHz stereo 16-bit PCM)."
-                        )),
-                        input_schema: stop_is,
-                        annotations: None, icons: None, meta: None, output_schema: None, title: None,
-                    },
+                    Tool::new(
+                        "music_generate",
+                        "Generate music from a text prompt using Google's Lyria API. Returns base64-encoded audio data, local file paths, or GCS URIs depending on output parameters.",
+                        gen_is,
+                    ),
+                    Tool::new(
+                        "music_realtime_start",
+                        "Start a real-time music generation session using Lyria RealTime. Returns a session ID. Audio streams continuously at 48kHz stereo. Use music_realtime_steer to change prompts/config, and music_realtime_stop to end and save the audio.",
+                        start_is,
+                    ),
+                    Tool::new(
+                        "music_realtime_steer",
+                        "Steer an active Lyria RealTime session. Update prompts, config (BPM, scale, density, brightness), or control playback (pause/resume/reset_context).",
+                        steer_is,
+                    ),
+                    Tool::new(
+                        "music_realtime_stop",
+                        "Stop a Lyria RealTime session and save the accumulated audio as a WAV file (48kHz stereo 16-bit PCM).",
+                        stop_is,
+                    ),
                 ],
                 next_cursor: None,
                 meta: None,
