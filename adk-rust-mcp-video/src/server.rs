@@ -12,7 +12,7 @@ use adk_rust_mcp_common::config::Config;
 use adk_rust_mcp_common::error::Error;
 use rmcp::{
     model::{
-        CallToolResult, Content, ListResourcesResult, ReadResourceResult,
+        CallToolResult, ContentBlock, ListResourcesResult, ReadResourceResult,
         ResourceContents, ServerCapabilities, ServerInfo,
     },
     ErrorData as McpError, ServerHandler,
@@ -260,12 +260,12 @@ impl VideoServer {
     }
 
     /// Format the video generation result as MCP content.
-    fn format_result(&self, result: &VideoGenerateResult) -> Vec<Content> {
+    fn format_result(&self, result: &VideoGenerateResult) -> Vec<ContentBlock> {
         let mut message = format!("Video generated: {}", result.gcs_uri);
         if let Some(local_path) = &result.local_path {
             message.push_str(&format!("\nDownloaded to: {}", local_path));
         }
-        vec![Content::text(message)]
+        vec![ContentBlock::text(message)]
     }
 }
 
@@ -313,8 +313,7 @@ impl ServerHandler for VideoServer {
                 _ => Arc::new(serde_json::Map::new()),
             };
 
-            Ok(ListToolsResult {
-                tools: vec![
+            Ok(ListToolsResult::with_all_items(vec![
                     Tool::new(
                         "video_generate",
                         "Generate video from a text prompt using Google's Veo API. \
@@ -338,10 +337,7 @@ impl ServerHandler for VideoServer {
                              Returns the GCS URI of the extended video.",
                         extend_input_schema,
                     ),
-                ],
-                next_cursor: None,
-                meta: None,
-            })
+                ]))
         }
     }
 
@@ -349,9 +345,9 @@ impl ServerHandler for VideoServer {
         &self,
         params: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_ {
         async move {
-            match params.name.as_ref() {
+            let result = match params.name.as_ref() {
                 "video_generate" => {
                     let tool_params: VideoGenerateToolParams = params
                         .arguments
@@ -383,7 +379,8 @@ impl ServerHandler for VideoServer {
                     self.extend_video(tool_params).await
                 }
                 _ => Err(McpError::invalid_params(format!("Unknown tool: {}", params.name), None)),
-            }
+            };
+            result.map(Into::into)
         }
     }
 
@@ -395,39 +392,21 @@ impl ServerHandler for VideoServer {
         async move {
             debug!("Listing resources");
             
-            let models_resource = rmcp::model::Resource {
-                raw: rmcp::model::RawResource {
-                    uri: "video://models".to_string(),
-                    name: "Available Video Models".to_string(),
-                    title: None,
-                    description: Some("List of available video generation models".to_string()),
-                    mime_type: Some("application/json".to_string()),
-                    size: None,
-                    icons: None,
-                    meta: None,
-                },
-                annotations: None,
-            };
+            let models_resource = rmcp::model::Resource::new(
+                "video://models",
+                "Available Video Models",
+            )
+            .with_description("List of available video generation models")
+            .with_mime_type("application/json");
 
-            let providers_resource = rmcp::model::Resource {
-                raw: rmcp::model::RawResource {
-                    uri: "video://providers".to_string(),
-                    name: "Available Providers".to_string(),
-                    title: None,
-                    description: Some("List of available video generation providers".to_string()),
-                    mime_type: Some("application/json".to_string()),
-                    size: None,
-                    icons: None,
-                    meta: None,
-                },
-                annotations: None,
-            };
+            let providers_resource = rmcp::model::Resource::new(
+                "video://providers",
+                "Available Providers",
+            )
+            .with_description("List of available video generation providers")
+            .with_mime_type("application/json");
 
-            Ok(ListResourcesResult {
-                resources: vec![models_resource, providers_resource],
-                next_cursor: None,
-                meta: None,
-            })
+            Ok(ListResourcesResult::with_all_items(vec![models_resource, providers_resource]))
         }
     }
 
@@ -435,7 +414,7 @@ impl ServerHandler for VideoServer {
         &self,
         params: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_ {
         async move {
             let uri = &params.uri;
             debug!(uri = %uri, "Reading resource");
@@ -451,7 +430,7 @@ impl ServerHandler for VideoServer {
                 }
             };
 
-            Ok(ReadResourceResult::new(vec![ResourceContents::text(content, uri.clone())]))
+            Ok(ReadResourceResult::new(vec![ResourceContents::text(content, uri.clone())]).into())
         }
     }
 }

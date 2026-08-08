@@ -6,7 +6,7 @@
 //!
 //! **Validates: Requirements 3.11**
 
-use rmcp::model::{CallToolResult, Content, RawContent};
+use rmcp::model::{CallToolResult, ContentBlock};
 
 /// Validates that a CallToolResult has valid content format.
 fn validate_tool_result(result: &CallToolResult) -> Result<(), String> {
@@ -23,17 +23,17 @@ fn validate_tool_result(result: &CallToolResult) -> Result<(), String> {
     Ok(())
 }
 
-/// Validates that a Content item has valid structure.
-fn validate_content(content: &Content) -> Result<(), String> {
-    match &content.raw {
-        RawContent::Text(text_content) => {
+/// Validates that a ContentBlock item has valid structure.
+fn validate_content(content: &ContentBlock) -> Result<(), String> {
+    match content {
+        ContentBlock::Text(text_content) => {
             // Text content should have non-empty text
             if text_content.text.is_empty() {
                 return Err("Text content should not be empty".to_string());
             }
             Ok(())
         }
-        RawContent::Image(image_content) => {
+        ContentBlock::Image(image_content) => {
             // Image content should have data and mime_type
             if image_content.data.is_empty() {
                 return Err("Image content should have data".to_string());
@@ -50,7 +50,7 @@ fn validate_content(content: &Content) -> Result<(), String> {
             }
             Ok(())
         }
-        RawContent::Audio(audio_content) => {
+        ContentBlock::Audio(audio_content) => {
             // Audio content should have data and mime_type
             if audio_content.data.is_empty() {
                 return Err("Audio content should have data".to_string());
@@ -67,14 +67,15 @@ fn validate_content(content: &Content) -> Result<(), String> {
             }
             Ok(())
         }
-        RawContent::Resource(_) => {
+        ContentBlock::Resource(_) => {
             // Resource content is valid
             Ok(())
         }
-        RawContent::ResourceLink(_) => {
+        ContentBlock::ResourceLink(_) => {
             // Resource link content is valid
             Ok(())
         }
+        _ => Err("Unsupported content block variant".to_string()),
     }
 }
 
@@ -82,45 +83,45 @@ fn validate_content(content: &Content) -> Result<(), String> {
 mod tests {
     use super::*;
 
-    /// Test that Content::text helper creates valid content.
+    /// Test that ContentBlock::text helper creates valid content.
     #[test]
     fn test_content_text_helper() {
-        let content = Content::text("Hello, world!");
+        let content = ContentBlock::text("Hello, world!");
         assert!(validate_content(&content).is_ok());
     }
 
-    /// Test that Content::text with empty string fails validation.
+    /// Test that ContentBlock::text with empty string fails validation.
     #[test]
     fn test_content_text_empty_fails() {
-        let content = Content::text("");
+        let content = ContentBlock::text("");
         assert!(validate_content(&content).is_err());
     }
 
-    /// Test that Content::image helper creates valid content.
+    /// Test that ContentBlock::image helper creates valid content.
     #[test]
     fn test_content_image_helper() {
-        let content = Content::image("base64data", "image/png");
+        let content = ContentBlock::image("base64data", "image/png");
         assert!(validate_content(&content).is_ok());
     }
 
-    /// Test that Content::image with empty data fails validation.
+    /// Test that ContentBlock::image with empty data fails validation.
     #[test]
     fn test_content_image_empty_data_fails() {
-        let content = Content::image("", "image/png");
+        let content = ContentBlock::image("", "image/png");
         assert!(validate_content(&content).is_err());
     }
 
-    /// Test that Content::image with invalid mime type fails validation.
+    /// Test that ContentBlock::image with invalid mime type fails validation.
     #[test]
     fn test_content_image_invalid_mime_fails() {
-        let content = Content::image("base64data", "text/plain");
+        let content = ContentBlock::image("base64data", "text/plain");
         assert!(validate_content(&content).is_err());
     }
 
     /// Test that CallToolResult::success helper creates valid result.
     #[test]
     fn test_call_tool_result_success_helper() {
-        let result = CallToolResult::success(vec![Content::text("Success")]);
+        let result = CallToolResult::success(vec![ContentBlock::text("Success")]);
         assert!(validate_tool_result(&result).is_ok());
         assert!(!result.is_error.unwrap_or(true));
     }
@@ -128,24 +129,16 @@ mod tests {
     /// Test that empty content for non-error result fails validation.
     #[test]
     fn test_empty_content_non_error_fails() {
-        let result = CallToolResult {
-            content: vec![],
-            is_error: Some(false),
-            meta: None,
-            structured_content: None,
-        };
+        let mut result = CallToolResult::default();
+        result.is_error = Some(false);
         assert!(validate_tool_result(&result).is_err());
     }
 
     /// Test that empty content for error result is OK.
     #[test]
     fn test_empty_content_error_ok() {
-        let result = CallToolResult {
-            content: vec![],
-            is_error: Some(true),
-            meta: None,
-            structured_content: None,
-        };
+        let mut result = CallToolResult::default();
+        result.is_error = Some(true);
         assert!(validate_tool_result(&result).is_ok());
     }
 
@@ -153,8 +146,8 @@ mod tests {
     #[test]
     fn test_multiple_content_items_validated() {
         let result = CallToolResult::success(vec![
-            Content::text("First"),
-            Content::text("Second"),
+            ContentBlock::text("First"),
+            ContentBlock::text("Second"),
         ]);
         assert!(validate_tool_result(&result).is_ok());
     }
@@ -163,8 +156,8 @@ mod tests {
     #[test]
     fn test_one_invalid_content_fails() {
         let result = CallToolResult::success(vec![
-            Content::text("Valid"),
-            Content::text(""), // Invalid
+            ContentBlock::text("Valid"),
+            ContentBlock::text(""), // Invalid
         ]);
         assert!(validate_tool_result(&result).is_err());
     }
@@ -225,7 +218,7 @@ mod property_tests {
         /// Property 7: Text content with valid text should pass validation
         #[test]
         fn valid_text_content_passes(text in valid_text_strategy()) {
-            let content = Content::text(&text);
+            let content = ContentBlock::text(&text);
             let result = validate_content(&content);
             prop_assert!(result.is_ok(), "Valid text content should pass: {:?}", result.err());
         }
@@ -236,7 +229,7 @@ mod property_tests {
             data in valid_base64_data_strategy(),
             mime in valid_image_mime_strategy(),
         ) {
-            let content = Content::image(&data, &mime);
+            let content = ContentBlock::image(&data, &mime);
             let result = validate_content(&content);
             prop_assert!(result.is_ok(), "Valid image content should pass: {:?}", result.err());
         }
@@ -247,7 +240,7 @@ mod property_tests {
             data in valid_base64_data_strategy(),
             mime in invalid_image_mime_strategy(),
         ) {
-            let content = Content::image(&data, &mime);
+            let content = ContentBlock::image(&data, &mime);
             let result = validate_content(&content);
             prop_assert!(result.is_err(), "Invalid image MIME type should fail");
         }
@@ -255,7 +248,7 @@ mod property_tests {
         /// Property 7: Successful result with valid content should pass
         #[test]
         fn successful_result_with_content_passes(text in valid_text_strategy()) {
-            let result = CallToolResult::success(vec![Content::text(&text)]);
+            let result = CallToolResult::success(vec![ContentBlock::text(&text)]);
             let validation = validate_tool_result(&result);
             prop_assert!(validation.is_ok(), "Successful result should pass: {:?}", validation.err());
             prop_assert!(!result.is_error.unwrap_or(true), "Should not be marked as error");
@@ -268,8 +261,8 @@ mod property_tests {
             text2 in valid_text_strategy(),
         ) {
             let result = CallToolResult::success(vec![
-                Content::text(&text1),
-                Content::text(&text2),
+                ContentBlock::text(&text1),
+                ContentBlock::text(&text2),
             ]);
             let validation = validate_tool_result(&result);
             prop_assert!(validation.is_ok(), "Multiple valid content should pass");
@@ -280,29 +273,15 @@ mod property_tests {
     /// **Validates: Requirements 3.11**
     #[test]
     fn audio_content_validation() {
-        use rmcp::model::RawAudioContent;
-
         // Valid audio content
         for mime in ["audio/wav", "audio/mp3", "audio/mpeg", "audio/ogg"] {
-            let content = Content {
-                raw: RawContent::Audio(RawAudioContent {
-                    data: "base64audiodata".to_string(),
-                    mime_type: mime.to_string(),
-                }),
-                annotations: None,
-            };
+            let content = ContentBlock::audio("base64audiodata", mime);
             assert!(validate_content(&content).is_ok(), "Audio with {} should be valid", mime);
         }
 
         // Invalid audio MIME types
         for mime in ["image/png", "text/plain", "video/mp4"] {
-            let content = Content {
-                raw: RawContent::Audio(RawAudioContent {
-                    data: "base64audiodata".to_string(),
-                    mime_type: mime.to_string(),
-                }),
-                annotations: None,
-            };
+            let content = ContentBlock::audio("base64audiodata", mime);
             assert!(validate_content(&content).is_err(), "Audio with {} should be invalid", mime);
         }
     }
@@ -311,24 +290,16 @@ mod property_tests {
     /// **Validates: Requirements 3.11**
     #[test]
     fn empty_content_validation() {
-        use rmcp::model::RawAudioContent;
-
         // Empty text should fail
-        let content = Content::text("");
+        let content = ContentBlock::text("");
         assert!(validate_content(&content).is_err(), "Empty text should fail");
 
         // Empty image data should fail
-        let content = Content::image("", "image/png");
+        let content = ContentBlock::image("", "image/png");
         assert!(validate_content(&content).is_err(), "Empty image data should fail");
 
         // Empty audio data should fail
-        let content = Content {
-            raw: RawContent::Audio(RawAudioContent {
-                data: "".to_string(),
-                mime_type: "audio/wav".to_string(),
-            }),
-            annotations: None,
-        };
+        let content = ContentBlock::audio("", "audio/wav");
         assert!(validate_content(&content).is_err(), "Empty audio data should fail");
     }
 
@@ -337,26 +308,18 @@ mod property_tests {
     #[test]
     fn result_structure_validation() {
         // Success result should have content
-        let result = CallToolResult::success(vec![Content::text("Success")]);
+        let result = CallToolResult::success(vec![ContentBlock::text("Success")]);
         assert!(validate_tool_result(&result).is_ok());
         assert!(!result.is_error.unwrap_or(true));
 
         // Empty success result should fail
-        let result = CallToolResult {
-            content: vec![],
-            is_error: Some(false),
-            meta: None,
-            structured_content: None,
-        };
+        let mut result = CallToolResult::default();
+        result.is_error = Some(false);
         assert!(validate_tool_result(&result).is_err());
 
         // Error result can have empty content
-        let result = CallToolResult {
-            content: vec![],
-            is_error: Some(true),
-            meta: None,
-            structured_content: None,
-        };
+        let mut result = CallToolResult::default();
+        result.is_error = Some(true);
         assert!(validate_tool_result(&result).is_ok());
     }
 }

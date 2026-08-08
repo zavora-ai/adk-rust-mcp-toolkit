@@ -3,7 +3,7 @@
 use crate::{from_code, generate, to_code};
 use adk_rust_mcp_common::Config;
 use rmcp::{
-    model::{CallToolResult, Content, ListResourcesResult, ReadResourceResult, ServerCapabilities, ServerInfo},
+    model::{CallToolResult, ContentBlock, ListResourcesResult, ServerCapabilities, ServerInfo},
     ErrorData as McpError, ServerHandler,
 };
 use std::sync::Arc;
@@ -40,7 +40,7 @@ impl ServerHandler for DiagramsServer {
                 tool("diagram_to_code", "Convert a natural language description to diagram source code (Mermaid or PlantUML) without rendering.", schema_for!(to_code::DiagramToCodeParams)),
             ];
 
-            Ok(ListToolsResult { tools, next_cursor: None, meta: None })
+            Ok(ListToolsResult::with_all_items(tools))
         }
     }
 
@@ -48,7 +48,7 @@ impl ServerHandler for DiagramsServer {
         &self,
         params: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_ {
         async move {
             let args = params.arguments.unwrap_or_default();
             let val = serde_json::Value::Object(args);
@@ -73,9 +73,9 @@ impl ServerHandler for DiagramsServer {
             };
 
             match result {
-                Ok(msg) => Ok(CallToolResult::success(vec![Content::text(msg)])),
+                Ok(msg) => Ok(CallToolResult::success(vec![ContentBlock::text(msg)])),
                 Err(e) => Err(McpError::internal_error(e, None)),
-            }
+            }.map(Into::into)
         }
     }
 
@@ -83,13 +83,13 @@ impl ServerHandler for DiagramsServer {
         &self, _: Option<rmcp::model::PaginatedRequestParams>,
         _: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> impl std::future::Future<Output = Result<ListResourcesResult, McpError>> + Send + '_ {
-        async { Ok(ListResourcesResult { resources: vec![], next_cursor: None, meta: None }) }
+        async { Ok(ListResourcesResult::with_all_items(vec![])) }
     }
 
     fn read_resource(
         &self, params: rmcp::model::ReadResourceRequestParams,
         _: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_ {
         async move { Err(McpError::resource_not_found(format!("Unknown: {}", params.uri), None)) }
     }
 }

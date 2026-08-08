@@ -11,7 +11,7 @@ use adk_rust_mcp_common::config::Config;
 use adk_rust_mcp_common::error::Error;
 use rmcp::{
     model::{
-        CallToolResult, Content, ListResourcesResult, ReadResourceResult, ServerCapabilities,
+        CallToolResult, ContentBlock, ListResourcesResult, ServerCapabilities,
         ServerInfo,
     },
     ErrorData as McpError, ServerHandler,
@@ -139,13 +139,13 @@ impl SpeechServer {
         // Convert result to MCP content
         let content = match result {
             SpeechSynthesizeResult::Base64(audio) => {
-                vec![Content::text(format!(
+                vec![ContentBlock::text(format!(
                     "data:{};base64,{}",
                     audio.mime_type, audio.data
                 ))]
             }
             SpeechSynthesizeResult::LocalFile(path) => {
-                vec![Content::text(format!("Audio saved to: {}", path))]
+                vec![ContentBlock::text(format!("Audio saved to: {}", path))]
             }
         };
 
@@ -175,7 +175,7 @@ impl SpeechServer {
             McpError::internal_error(format!("Failed to serialize voices: {}", e), None)
         })?;
 
-        Ok(CallToolResult::success(vec![Content::text(voices_json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(voices_json)]))
     }
 }
 
@@ -214,8 +214,7 @@ impl ServerHandler for SpeechServer {
             empty_schema_map.insert("type".to_string(), serde_json::Value::String("object".to_string()));
             let empty_schema = Arc::new(empty_schema_map);
 
-            Ok(ListToolsResult {
-                tools: vec![
+            Ok(ListToolsResult::with_all_items(vec![
                     Tool::new(
                         "speech_synthesize",
                         "Convert text to speech using Google Cloud TTS Chirp3-HD voices. \
@@ -228,10 +227,7 @@ impl ServerHandler for SpeechServer {
                         "List available Chirp3-HD voices with their supported languages.",
                         empty_schema,
                     ),
-                ],
-                next_cursor: None,
-                meta: None,
-            })
+                ]))
         }
     }
 
@@ -239,9 +235,9 @@ impl ServerHandler for SpeechServer {
         &self,
         params: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_ {
         async move {
-            match params.name.as_ref() {
+            let result = match params.name.as_ref() {
                 "speech_synthesize" => {
                     let tool_params: SpeechSynthesizeToolParams = params
                         .arguments
@@ -259,7 +255,8 @@ impl ServerHandler for SpeechServer {
                     format!("Unknown tool: {}", params.name),
                     None,
                 )),
-            }
+            };
+            result.map(Into::into)
         }
     }
 
@@ -271,11 +268,7 @@ impl ServerHandler for SpeechServer {
         async move {
             debug!("Listing resources (none available for speech server)");
 
-            Ok(ListResourcesResult {
-                resources: vec![],
-                next_cursor: None,
-                meta: None,
-            })
+            Ok(ListResourcesResult::with_all_items(vec![]))
         }
     }
 
@@ -283,7 +276,7 @@ impl ServerHandler for SpeechServer {
         &self,
         params: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_ {
         async move {
             let uri = &params.uri;
             debug!(uri = %uri, "Reading resource");

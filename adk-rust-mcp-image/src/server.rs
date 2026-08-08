@@ -11,7 +11,7 @@ use adk_rust_mcp_common::config::Config;
 use adk_rust_mcp_common::error::Error;
 use rmcp::{
     model::{
-        CallToolResult, Content, ListResourcesResult, ReadResourceResult,
+        CallToolResult, ContentBlock, ListResourcesResult, ReadResourceResult,
         ResourceContents, ServerCapabilities, ServerInfo,
     },
     ErrorData as McpError, ServerHandler,
@@ -143,14 +143,14 @@ impl ImageServer {
             ImageGenerateResult::Base64(images) => {
                 images
                     .into_iter()
-                    .map(|img| Content::image(img.data, img.mime_type))
+                    .map(|img| ContentBlock::image(img.data, img.mime_type))
                     .collect()
             }
             ImageGenerateResult::LocalFiles(paths) => {
-                vec![Content::text(format!("Images saved to: {}", paths.join(", ")))]
+                vec![ContentBlock::text(format!("Images saved to: {}", paths.join(", ")))]
             }
             ImageGenerateResult::StorageUris(uris) => {
-                vec![Content::text(format!("Images uploaded to: {}", uris.join(", ")))]
+                vec![ContentBlock::text(format!("Images uploaded to: {}", uris.join(", ")))]
             }
         };
 
@@ -179,13 +179,13 @@ impl ImageServer {
         // Convert result to MCP content
         let content = match result {
             ImageUpscaleResult::Base64(image) => {
-                vec![Content::image(image.data, image.mime_type)]
+                vec![ContentBlock::image(image.data, image.mime_type)]
             }
             ImageUpscaleResult::LocalFile(path) => {
-                vec![Content::text(format!("Upscaled image saved to: {}", path))]
+                vec![ContentBlock::text(format!("Upscaled image saved to: {}", path))]
             }
             ImageUpscaleResult::StorageUri(uri) => {
-                vec![Content::text(format!("Upscaled image uploaded to: {}", uri))]
+                vec![ContentBlock::text(format!("Upscaled image uploaded to: {}", uri))]
             }
         };
 
@@ -229,8 +229,7 @@ impl ServerHandler for ImageServer {
                 _ => Arc::new(serde_json::Map::new()),
             };
 
-            Ok(ListToolsResult {
-                tools: vec![
+            Ok(ListToolsResult::with_all_items(vec![
                     Tool::new(
                         "image_generate",
                         "Generate images from a text prompt using Google's Imagen API. \
@@ -246,10 +245,7 @@ impl ServerHandler for ImageServer {
                              Returns base64-encoded image data, local file path, or storage URI.",
                         upscale_input_schema,
                     ),
-                ],
-                next_cursor: None,
-                meta: None,
-            })
+                ]))
         }
     }
 
@@ -257,9 +253,9 @@ impl ServerHandler for ImageServer {
         &self,
         params: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_ {
         async move {
-            match params.name.as_ref() {
+            let result = match params.name.as_ref() {
                 "image_generate" => {
                     let tool_params: ImageGenerateToolParams = params
                         .arguments
@@ -281,7 +277,8 @@ impl ServerHandler for ImageServer {
                     self.upscale_image(tool_params).await
                 }
                 _ => Err(McpError::invalid_params(format!("Unknown tool: {}", params.name), None)),
-            }
+            };
+            result.map(Into::into)
         }
     }
 
@@ -293,54 +290,30 @@ impl ServerHandler for ImageServer {
         async move {
             debug!("Listing resources");
             
-            // Build resources using the raw struct approach
-            let models_resource = rmcp::model::Resource {
-                raw: rmcp::model::RawResource {
-                    uri: "image://models".to_string(),
-                    name: "Available Image Models".to_string(),
-                    title: None,
-                    description: Some("List of available image generation models".to_string()),
-                    mime_type: Some("application/json".to_string()),
-                    size: None,
-                    icons: None,
-                    meta: None,
-                },
-                annotations: None,
-            };
+            let models_resource = rmcp::model::Resource::new(
+                "image://models",
+                "Available Image Models",
+            )
+            .with_description("List of available image generation models")
+            .with_mime_type("application/json");
 
-            let segmentation_resource = rmcp::model::Resource {
-                raw: rmcp::model::RawResource {
-                    uri: "image://segmentation_classes".to_string(),
-                    name: "Segmentation Classes".to_string(),
-                    title: None,
-                    description: Some("List of segmentation classes for image editing (Google provider)".to_string()),
-                    mime_type: Some("application/json".to_string()),
-                    size: None,
-                    icons: None,
-                    meta: None,
-                },
-                annotations: None,
-            };
+            let segmentation_resource = rmcp::model::Resource::new(
+                "image://segmentation_classes",
+                "Segmentation Classes",
+            )
+            .with_description(
+                "List of segmentation classes for image editing (Google provider)",
+            )
+            .with_mime_type("application/json");
 
-            let providers_resource = rmcp::model::Resource {
-                raw: rmcp::model::RawResource {
-                    uri: "image://providers".to_string(),
-                    name: "Available Providers".to_string(),
-                    title: None,
-                    description: Some("List of available image generation providers".to_string()),
-                    mime_type: Some("application/json".to_string()),
-                    size: None,
-                    icons: None,
-                    meta: None,
-                },
-                annotations: None,
-            };
+            let providers_resource = rmcp::model::Resource::new(
+                "image://providers",
+                "Available Providers",
+            )
+            .with_description("List of available image generation providers")
+            .with_mime_type("application/json");
 
-            Ok(ListResourcesResult {
-                resources: vec![models_resource, segmentation_resource, providers_resource],
-                next_cursor: None,
-                meta: None,
-            })
+            Ok(ListResourcesResult::with_all_items(vec![models_resource, segmentation_resource, providers_resource]))
         }
     }
 
@@ -348,7 +321,7 @@ impl ServerHandler for ImageServer {
         &self,
         params: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_ {
         async move {
             let uri = &params.uri;
             debug!(uri = %uri, "Reading resource");
@@ -365,7 +338,7 @@ impl ServerHandler for ImageServer {
                 }
             };
 
-            Ok(ReadResourceResult::new(vec![ResourceContents::text(content, uri.clone())]))
+            Ok(ReadResourceResult::new(vec![ResourceContents::text(content, uri.clone())]).into())
         }
     }
 }

@@ -14,7 +14,7 @@ use adk_rust_mcp_common::config::Config;
 use adk_rust_mcp_common::error::Error;
 use rmcp::{
     model::{
-        CallToolResult, Content, ListResourcesResult, ReadResourceResult, ResourceContents,
+        CallToolResult, ContentBlock, ListResourcesResult, ReadResourceResult, ResourceContents,
         ServerCapabilities, ServerInfo,
     },
     ErrorData as McpError, ServerHandler,
@@ -136,10 +136,10 @@ impl MultimodalServer {
         // Convert result to MCP content
         let content = match result {
             ImageGenerateResult::Base64(image) => {
-                vec![Content::image(image.data, image.mime_type)]
+                vec![ContentBlock::image(image.data, image.mime_type)]
             }
             ImageGenerateResult::LocalFile(path) => {
-                vec![Content::text(format!("Image saved to: {}", path))]
+                vec![ContentBlock::text(format!("Image saved to: {}", path))]
             }
         };
 
@@ -171,13 +171,13 @@ impl MultimodalServer {
         // Convert result to MCP content
         let content = match result {
             TtsResult::Base64(audio) => {
-                vec![Content::text(format!(
+                vec![ContentBlock::text(format!(
                     "data:{};base64,{}",
                     audio.mime_type, audio.data
                 ))]
             }
             TtsResult::LocalFile(path) => {
-                vec![Content::text(format!("Audio saved to: {}", path))]
+                vec![ContentBlock::text(format!("Audio saved to: {}", path))]
             }
         };
 
@@ -205,7 +205,7 @@ impl MultimodalServer {
             McpError::internal_error(format!("Failed to serialize voices: {}", e), None)
         })?;
 
-        Ok(CallToolResult::success(vec![Content::text(voices_json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(voices_json)]))
     }
 }
 
@@ -252,8 +252,7 @@ impl ServerHandler for MultimodalServer {
             empty_schema_map.insert("type".to_string(), serde_json::Value::String("object".to_string()));
             let empty_schema = Arc::new(empty_schema_map);
 
-            Ok(ListToolsResult {
-                tools: vec![
+            Ok(ListToolsResult::with_all_items(vec![
                     Tool::new(
                         "multimodal_image_generate",
                         "Generate images from a text prompt using Google's Gemini API. \
@@ -272,10 +271,7 @@ impl ServerHandler for MultimodalServer {
                         "List available Gemini TTS voices.",
                         empty_schema,
                     ),
-                ],
-                next_cursor: None,
-                meta: None,
-            })
+                ]))
         }
     }
 
@@ -283,9 +279,9 @@ impl ServerHandler for MultimodalServer {
         &self,
         params: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_ {
         async move {
-            match params.name.as_ref() {
+            let result = match params.name.as_ref() {
                 "multimodal_image_generate" => {
                     let tool_params: ImageGenerateToolParams = params
                         .arguments
@@ -315,7 +311,8 @@ impl ServerHandler for MultimodalServer {
                     format!("Unknown tool: {}", params.name),
                     None,
                 )),
-            }
+            };
+            result.map(Into::into)
         }
     }
 
@@ -327,39 +324,21 @@ impl ServerHandler for MultimodalServer {
         async move {
             debug!("Listing resources");
 
-            let language_codes_resource = rmcp::model::Resource {
-                raw: rmcp::model::RawResource {
-                    uri: "multimodal://language_codes".to_string(),
-                    name: "Supported Language Codes".to_string(),
-                    title: None,
-                    description: Some("List of supported language codes for Gemini TTS".to_string()),
-                    mime_type: Some("application/json".to_string()),
-                    size: None,
-                    icons: None,
-                    meta: None,
-                },
-                annotations: None,
-            };
+            let language_codes_resource = rmcp::model::Resource::new(
+                "multimodal://language_codes",
+                "Supported Language Codes",
+            )
+            .with_description("List of supported language codes for Gemini TTS")
+            .with_mime_type("application/json");
 
-            let voices_resource = rmcp::model::Resource {
-                raw: rmcp::model::RawResource {
-                    uri: "multimodal://voices".to_string(),
-                    name: "Available Voices".to_string(),
-                    title: None,
-                    description: Some("List of available Gemini TTS voices".to_string()),
-                    mime_type: Some("application/json".to_string()),
-                    size: None,
-                    icons: None,
-                    meta: None,
-                },
-                annotations: None,
-            };
+            let voices_resource = rmcp::model::Resource::new(
+                "multimodal://voices",
+                "Available Voices",
+            )
+            .with_description("List of available Gemini TTS voices")
+            .with_mime_type("application/json");
 
-            Ok(ListResourcesResult {
-                resources: vec![language_codes_resource, voices_resource],
-                next_cursor: None,
-                meta: None,
-            })
+            Ok(ListResourcesResult::with_all_items(vec![language_codes_resource, voices_resource]))
         }
     }
 
@@ -367,7 +346,7 @@ impl ServerHandler for MultimodalServer {
         &self,
         params: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_ {
         async move {
             let uri = &params.uri;
             debug!(uri = %uri, "Reading resource");
@@ -383,7 +362,7 @@ impl ServerHandler for MultimodalServer {
                 }
             };
 
-            Ok(ReadResourceResult::new(vec![ResourceContents::text(content, uri.clone())]))
+            Ok(ReadResourceResult::new(vec![ResourceContents::text(content, uri.clone())]).into())
         }
     }
 }

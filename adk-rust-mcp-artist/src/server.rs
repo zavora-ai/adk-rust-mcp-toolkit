@@ -3,7 +3,7 @@
 use crate::{create, sketch_to_art, style_transfer, variations};
 use adk_rust_mcp_common::Config;
 use rmcp::{
-    model::{CallToolResult, Content, ListResourcesResult, ReadResourceResult, ServerCapabilities, ServerInfo},
+    model::{CallToolResult, ContentBlock, ListResourcesResult, ServerCapabilities, ServerInfo},
     ErrorData as McpError, ServerHandler,
 };
 use std::sync::Arc;
@@ -32,22 +32,19 @@ impl ServerHandler for ArtistServer {
         async move {
             use rmcp::model::ListToolsResult;
             use schemars::schema_for;
-            Ok(ListToolsResult {
-                tools: vec![
+            Ok(ListToolsResult::with_all_items(vec![
                     tool("artist_create", "Create art from text in a specific style", schema_for!(create::ArtistCreateParams)),
                     tool("artist_style_transfer", "Apply an art style from one image to another", schema_for!(style_transfer::StyleTransferParams)),
                     tool("artist_sketch_to_art", "Turn a rough sketch into finished artwork", schema_for!(sketch_to_art::SketchToArtParams)),
                     tool("artist_variations", "Generate style variations of an existing image", schema_for!(variations::VariationsParams)),
-                ],
-                next_cursor: None, meta: None,
-            })
+                ]))
         }
     }
 
     fn call_tool(
         &self, params: rmcp::model::CallToolRequestParams,
         _: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_ {
         async move {
             let val = serde_json::Value::Object(params.arguments.unwrap_or_default());
             let result = match params.name.as_ref() {
@@ -70,17 +67,17 @@ impl ServerHandler for ArtistServer {
                 _ => return Err(McpError::invalid_params(format!("Unknown tool: {}", params.name), None)),
             };
             match result {
-                Ok(msg) => Ok(CallToolResult::success(vec![Content::text(msg)])),
+                Ok(msg) => Ok(CallToolResult::success(vec![ContentBlock::text(msg)])),
                 Err(e) => Err(McpError::internal_error(e, None)),
-            }
+            }.map(Into::into)
         }
     }
 
     fn list_resources(&self, _: Option<rmcp::model::PaginatedRequestParams>, _: rmcp::service::RequestContext<rmcp::service::RoleServer>) -> impl std::future::Future<Output = Result<ListResourcesResult, McpError>> + Send + '_ {
-        async { Ok(ListResourcesResult { resources: vec![], next_cursor: None, meta: None }) }
+        async { Ok(ListResourcesResult::with_all_items(vec![])) }
     }
 
-    fn read_resource(&self, params: rmcp::model::ReadResourceRequestParams, _: rmcp::service::RequestContext<rmcp::service::RoleServer>) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
+    fn read_resource(&self, params: rmcp::model::ReadResourceRequestParams, _: rmcp::service::RequestContext<rmcp::service::RoleServer>) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_ {
         async move { Err(McpError::resource_not_found(format!("Unknown: {}", params.uri), None)) }
     }
 }

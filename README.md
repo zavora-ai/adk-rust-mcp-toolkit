@@ -166,7 +166,7 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 ### Prerequisites
 
-- Rust 1.85+ (2024 edition)
+- Rust 1.88+ (2024 edition)
 - Google Cloud project with Vertex AI enabled, **or** a Gemini API key
 - `gcloud` CLI authenticated (for Vertex AI)
 - FFmpeg (for avtool only)
@@ -376,3 +376,7 @@ Apache-2.0 — see [LICENSE](LICENSE) for details.
 ---
 
 Built with ❤️ by [Zavora AI](https://zavora.ai)
+
+## rmcp and MCP compatibility
+
+This server is built with [`rmcp` 3.1.2](https://github.com/modelcontextprotocol/rust-sdk/releases/tag/rmcp-v3.1.2) and requires Rust 1.88 or newer. The rmcp 3 rollout retains legacy MCP initialization compatibility and targets MCP protocol revisions `2025-11-25` and `2026-07-28`.

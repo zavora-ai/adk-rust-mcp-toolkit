@@ -13,7 +13,7 @@ use adk_rust_mcp_common::error::Error;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use rmcp::{
     model::{
-        CallToolResult, Content, ListResourcesResult, ReadResourceResult,
+        CallToolResult, ContentBlock, ListResourcesResult,
         ServerCapabilities, ServerInfo,
     },
     ErrorData as McpError, ServerHandler,
@@ -146,14 +146,14 @@ impl MusicServer {
         let content = match result {
             MusicGenerateResult::Base64(samples) => {
                 samples.into_iter()
-                    .map(|s| Content::text(format!("data:{};base64,{}", s.mime_type, s.data)))
+                    .map(|s| ContentBlock::text(format!("data:{};base64,{}", s.mime_type, s.data)))
                     .collect()
             }
             MusicGenerateResult::LocalFiles(paths) => {
-                vec![Content::text(format!("Audio saved to: {}", paths.join(", ")))]
+                vec![ContentBlock::text(format!("Audio saved to: {}", paths.join(", ")))]
             }
             MusicGenerateResult::GcsUris(uris) => {
-                vec![Content::text(format!("Audio uploaded to: {}", uris.join(", ")))]
+                vec![ContentBlock::text(format!("Audio uploaded to: {}", uris.join(", ")))]
             }
         };
 
@@ -172,7 +172,7 @@ impl MusicServer {
             .await
             .map_err(|e| McpError::internal_error(format!("Failed to start session: {}", e), None))?;
 
-        Ok(CallToolResult::success(vec![Content::text(format!(
+        Ok(CallToolResult::success(vec![ContentBlock::text(format!(
             "Realtime music session started. Session ID: {}. Audio is streaming (48kHz stereo PCM). Use music_realtime_steer to change prompts/config, or music_realtime_stop to end and save.",
             session_id
         ))]))
@@ -211,7 +211,7 @@ impl MusicServer {
         let buf_size = session.buffer_size().await;
         let duration_secs = buf_size as f64 / (48000.0 * 2.0 * 2.0); // 48kHz, stereo, 16-bit
 
-        Ok(CallToolResult::success(vec![Content::text(format!(
+        Ok(CallToolResult::success(vec![ContentBlock::text(format!(
             "Session {} updated. Buffered audio: {:.1}s ({} bytes)",
             params.session_id, duration_secs, buf_size
         ))]))
@@ -233,7 +233,7 @@ impl MusicServer {
             tokio::fs::write(output_file, &wav_data).await
                 .map_err(|e| McpError::internal_error(format!("Failed to write file: {}", e), None))?;
 
-            Ok(CallToolResult::success(vec![Content::text(format!(
+            Ok(CallToolResult::success(vec![ContentBlock::text(format!(
                 "Session stopped. Audio saved to: {} ({:.1}s, 48kHz stereo)",
                 output_file, duration_secs
             ))]))
@@ -241,7 +241,7 @@ impl MusicServer {
             // Return base64-encoded WAV
             let wav_data = pcm_to_wav(&pcm_data, 48000, 2, 16);
             let b64 = BASE64.encode(&wav_data);
-            Ok(CallToolResult::success(vec![Content::text(format!(
+            Ok(CallToolResult::success(vec![ContentBlock::text(format!(
                 "data:audio/wav;base64,{}", b64
             ))]))
         }
@@ -308,8 +308,7 @@ impl ServerHandler for MusicServer {
             let stop_sv = serde_json::to_value(&stop_schema).unwrap_or_default();
             let stop_is = match stop_sv { serde_json::Value::Object(m) => Arc::new(m), _ => Arc::new(serde_json::Map::new()) };
 
-            Ok(ListToolsResult {
-                tools: vec![
+            Ok(ListToolsResult::with_all_items(vec![
                     Tool::new(
                         "music_generate",
                         "Generate music from a text prompt using Google's Lyria API. Returns base64-encoded audio data, local file paths, or GCS URIs depending on output parameters.",
@@ -330,10 +329,7 @@ impl ServerHandler for MusicServer {
                         "Stop a Lyria RealTime session and save the accumulated audio as a WAV file (48kHz stereo 16-bit PCM).",
                         stop_is,
                     ),
-                ],
-                next_cursor: None,
-                meta: None,
-            })
+                ]))
         }
     }
 
@@ -341,9 +337,9 @@ impl ServerHandler for MusicServer {
         &self,
         params: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_ {
         async move {
-            match params.name.as_ref() {
+            let result = match params.name.as_ref() {
                 "music_generate" => {
                     let tool_params: MusicGenerateToolParams = params
                         .arguments
@@ -381,7 +377,8 @@ impl ServerHandler for MusicServer {
                     self.realtime_stop(tool_params).await
                 }
                 _ => Err(McpError::invalid_params(format!("Unknown tool: {}", params.name), None)),
-            }
+            };
+            result.map(Into::into)
         }
     }
 
@@ -393,11 +390,7 @@ impl ServerHandler for MusicServer {
         async move {
             debug!("Listing resources (none available for music server)");
             
-            Ok(ListResourcesResult {
-                resources: vec![],
-                next_cursor: None,
-                meta: None,
-            })
+            Ok(ListResourcesResult::with_all_items(vec![]))
         }
     }
 
@@ -405,7 +398,7 @@ impl ServerHandler for MusicServer {
         &self,
         params: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_ {
         async move {
             let uri = &params.uri;
             debug!(uri = %uri, "Reading resource");

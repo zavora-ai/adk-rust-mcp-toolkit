@@ -12,7 +12,7 @@ use adk_rust_mcp_common::config::Config;
 use adk_rust_mcp_common::error::Error;
 use rmcp::{
     model::{
-        CallToolResult, Content, ListResourcesResult, ReadResourceResult,
+        CallToolResult, ContentBlock, ListResourcesResult,
         ServerCapabilities, ServerInfo,
     },
     ErrorData as McpError, ServerHandler,
@@ -71,7 +71,7 @@ impl AVToolServer {
             McpError::internal_error(format!("Failed to serialize result: {}", e), None)
         })?;
 
-        Ok(CallToolResult::success(vec![Content::text(json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(json)]))
     }
 
     /// Convert WAV to MP3.
@@ -91,7 +91,7 @@ impl AVToolServer {
             McpError::internal_error(format!("Conversion failed: {}", e), None)
         })?;
 
-        Ok(CallToolResult::success(vec![Content::text(format!("Converted to: {}", output))]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(format!("Converted to: {}", output))]))
     }
 
     /// Convert video to GIF.
@@ -111,7 +111,7 @@ impl AVToolServer {
             McpError::internal_error(format!("Conversion failed: {}", e), None)
         })?;
 
-        Ok(CallToolResult::success(vec![Content::text(format!("Created GIF: {}", output))]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(format!("Created GIF: {}", output))]))
     }
 
     /// Combine audio and video.
@@ -131,7 +131,7 @@ impl AVToolServer {
             McpError::internal_error(format!("Combine failed: {}", e), None)
         })?;
 
-        Ok(CallToolResult::success(vec![Content::text(format!("Combined to: {}", output))]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(format!("Combined to: {}", output))]))
     }
 
     /// Overlay image on video.
@@ -151,7 +151,7 @@ impl AVToolServer {
             McpError::internal_error(format!("Overlay failed: {}", e), None)
         })?;
 
-        Ok(CallToolResult::success(vec![Content::text(format!("Created: {}", output))]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(format!("Created: {}", output))]))
     }
 
     /// Concatenate media files.
@@ -171,7 +171,7 @@ impl AVToolServer {
             McpError::internal_error(format!("Concatenation failed: {}", e), None)
         })?;
 
-        Ok(CallToolResult::success(vec![Content::text(format!("Concatenated to: {}", output))]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(format!("Concatenated to: {}", output))]))
     }
 
     /// Adjust audio volume.
@@ -191,7 +191,7 @@ impl AVToolServer {
             McpError::internal_error(format!("Volume adjustment failed: {}", e), None)
         })?;
 
-        Ok(CallToolResult::success(vec![Content::text(format!("Adjusted volume: {}", output))]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(format!("Adjusted volume: {}", output))]))
     }
 
     /// Layer multiple audio files.
@@ -211,7 +211,7 @@ impl AVToolServer {
             McpError::internal_error(format!("Audio layering failed: {}", e), None)
         })?;
 
-        Ok(CallToolResult::success(vec![Content::text(format!("Layered audio: {}", output))]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(format!("Layered audio: {}", output))]))
     }
 }
 
@@ -268,11 +268,7 @@ impl ServerHandler for AVToolServer {
                 ),
             ];
 
-            Ok(ListToolsResult {
-                tools,
-                next_cursor: None,
-                meta: None,
-            })
+            Ok(ListToolsResult::with_all_items(tools))
         }
     }
 
@@ -280,9 +276,9 @@ impl ServerHandler for AVToolServer {
         &self,
         params: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_ {
         async move {
-            match params.name.as_ref() {
+            let result = match params.name.as_ref() {
                 "ffmpeg_get_media_info" => {
                     let tool_params: GetMediaInfoParams = parse_params(params.arguments)?;
                     self.get_media_info(tool_params).await
@@ -316,7 +312,8 @@ impl ServerHandler for AVToolServer {
                     self.layer_audio(tool_params).await
                 }
                 _ => Err(McpError::invalid_params(format!("Unknown tool: {}", params.name), None)),
-            }
+            };
+            result.map(Into::into)
         }
     }
 
@@ -327,11 +324,7 @@ impl ServerHandler for AVToolServer {
     ) -> impl std::future::Future<Output = Result<ListResourcesResult, McpError>> + Send + '_ {
         async move {
             // AVTool server doesn't expose any resources
-            Ok(ListResourcesResult {
-                resources: vec![],
-                next_cursor: None,
-                meta: None,
-            })
+            Ok(ListResourcesResult::with_all_items(vec![]))
         }
     }
 
@@ -339,7 +332,7 @@ impl ServerHandler for AVToolServer {
         &self,
         params: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_ {
         async move {
             Err(McpError::resource_not_found(
                 format!("Unknown resource: {}", params.uri),

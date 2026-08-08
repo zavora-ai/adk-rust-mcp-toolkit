@@ -30,7 +30,7 @@ authors = ["James Karanja Maina"]
 homepage = "https://www.zavora.ai"
 license = "Apache-2.0"
 repository = "https://github.com/zavora-ai/adk-rust-mcp-toolkit"
-rust-version = "1.85"
+rust-version = "1.88"
 keywords = ["mcp", "ai", "generative-media", "vertex-ai", "google-cloud"]
 categories = ["multimedia", "api-bindings", "development-tools"]
 
@@ -47,7 +47,7 @@ thiserror = "2.0"
 anyhow = "1.0"
 
 # MCP SDK
-rmcp = { version = "1.7", features = ["server", "transport-io", "transport-streamable-http-server", "macros"] }
+rmcp = { version = "3.1.2", features = ["server", "transport-io", "transport-streamable-http-server", "macros"] }
 
 # Testing
 proptest = "1.5"

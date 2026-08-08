@@ -3,7 +3,7 @@
 use crate::{background, edit, enhance, remove, resize};
 use adk_rust_mcp_common::Config;
 use rmcp::{
-    model::{CallToolResult, Content, ListResourcesResult, ReadResourceResult, ServerCapabilities, ServerInfo},
+    model::{CallToolResult, ContentBlock, ListResourcesResult, ServerCapabilities, ServerInfo},
     ErrorData as McpError, ServerHandler,
 };
 use std::sync::Arc;
@@ -32,23 +32,20 @@ impl ServerHandler for GraphicsServer {
         async move {
             use rmcp::model::ListToolsResult;
             use schemars::schema_for;
-            Ok(ListToolsResult {
-                tools: vec![
+            Ok(ListToolsResult::with_all_items(vec![
                     tool("graphics_edit", "Edit an image with natural language instructions", schema_for!(edit::EditParams)),
                     tool("graphics_remove_object", "Remove an object from an image", schema_for!(remove::RemoveParams)),
                     tool("graphics_replace_background", "Replace the background of an image", schema_for!(background::BackgroundParams)),
                     tool("graphics_resize", "Resize/reframe an image to a new aspect ratio (outpainting)", schema_for!(resize::ResizeParams)),
                     tool("graphics_enhance", "Enhance image quality/details", schema_for!(enhance::EnhanceParams)),
-                ],
-                next_cursor: None, meta: None,
-            })
+                ]))
         }
     }
 
     fn call_tool(
         &self, params: rmcp::model::CallToolRequestParams,
         _: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_ {
         async move {
             let val = serde_json::Value::Object(params.arguments.unwrap_or_default());
             let result = match params.name.as_ref() {
@@ -75,17 +72,17 @@ impl ServerHandler for GraphicsServer {
                 _ => return Err(McpError::invalid_params(format!("Unknown tool: {}", params.name), None)),
             };
             match result {
-                Ok(msg) => Ok(CallToolResult::success(vec![Content::text(msg)])),
+                Ok(msg) => Ok(CallToolResult::success(vec![ContentBlock::text(msg)])),
                 Err(e) => Err(McpError::internal_error(e, None)),
-            }
+            }.map(Into::into)
         }
     }
 
     fn list_resources(&self, _: Option<rmcp::model::PaginatedRequestParams>, _: rmcp::service::RequestContext<rmcp::service::RoleServer>) -> impl std::future::Future<Output = Result<ListResourcesResult, McpError>> + Send + '_ {
-        async { Ok(ListResourcesResult { resources: vec![], next_cursor: None, meta: None }) }
+        async { Ok(ListResourcesResult::with_all_items(vec![])) }
     }
 
-    fn read_resource(&self, params: rmcp::model::ReadResourceRequestParams, _: rmcp::service::RequestContext<rmcp::service::RoleServer>) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
+    fn read_resource(&self, params: rmcp::model::ReadResourceRequestParams, _: rmcp::service::RequestContext<rmcp::service::RoleServer>) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_ {
         async move { Err(McpError::resource_not_found(format!("Unknown: {}", params.uri), None)) }
     }
 }

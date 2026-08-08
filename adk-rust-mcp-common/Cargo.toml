@@ -10,7 +10,7 @@ license = "Apache-2.0"
 repository = "https://github.com/zavora-ai/adk-rust-mcp-toolkit"
 keywords = ["mcp", "ai", "generative-media", "vertex-ai", "google-cloud"]
 categories = ["multimedia", "api-bindings", "development-tools"]
-rust-version = "1.85"
+rust-version = "1.88"
 homepage = "https://www.zavora.ai"
 
 [package.metadata.docs.rs]
@@ -36,7 +36,7 @@ base64 = "0.22"
 urlencoding = "2.1"
 gcp_auth = "0.12"
 clap = { version = "4.5", features = ["derive", "env"] }
-rmcp = { version = "1.7", features = ["server", "transport-io", "transport-streamable-http-server"] }
+rmcp = { version = "3.1.2", features = ["server", "transport-io", "transport-streamable-http-server"] }
 axum = "0.8"
 
 # OpenTelemetry dependencies (optional)
