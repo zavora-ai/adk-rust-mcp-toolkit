@@ -6,16 +6,20 @@
 //! - `video_extend` tool for video extension
 //! - Resources for models and providers
 
-use crate::handler::{VideoT2vParams, VideoI2vParams, VideoExtendParams, VideoGenerateResult, VideoHandler};
+use crate::handler::{
+    VideoExtendParams, VideoGenerateResult, VideoHandler, VideoI2vParams, VideoT2vParams,
+};
 use crate::resources;
 use adk_rust_mcp_common::config::Config;
 use adk_rust_mcp_common::error::Error;
 use rmcp::{
-    model::{
-        CallToolResult, ContentBlock, ListResourcesResult, ReadResourceResult,
-        ResourceContents, ServerCapabilities, ServerInfo,
-    },
     ErrorData as McpError, ServerHandler,
+    model::{
+        CacheScope, CallToolRequestParams, CallToolResponse, CallToolResult, CancelTaskParams,
+        ContentBlock, CreateTaskResult, GetTaskParams, GetTaskResult, ListResourcesResult,
+        ReadResourceResult, ResourceContents, ServerCapabilities, ServerInfo, UpdateTaskParams,
+    },
+    task_manager::{TaskExit, TaskManager, TaskOptions},
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -30,6 +34,8 @@ pub struct VideoServer {
     handler: Arc<RwLock<Option<VideoHandler>>>,
     /// Server configuration
     config: Config,
+    /// SEP-2663 task state for long-running Veo operations.
+    tasks: TaskManager,
 }
 
 /// Tool parameters wrapper for video_generate (text-to-video).
@@ -66,9 +72,15 @@ impl From<VideoGenerateToolParams> for VideoT2vParams {
     fn from(params: VideoGenerateToolParams) -> Self {
         Self {
             prompt: params.prompt,
-            model: params.model.unwrap_or_else(|| crate::handler::DEFAULT_MODEL.to_string()),
-            aspect_ratio: params.aspect_ratio.unwrap_or_else(|| crate::handler::DEFAULT_ASPECT_RATIO.to_string()),
-            duration_seconds: params.duration_seconds.unwrap_or(crate::handler::DEFAULT_DURATION_SECONDS),
+            model: params
+                .model
+                .unwrap_or_else(|| crate::handler::DEFAULT_MODEL.to_string()),
+            aspect_ratio: params
+                .aspect_ratio
+                .unwrap_or_else(|| crate::handler::DEFAULT_ASPECT_RATIO.to_string()),
+            duration_seconds: params
+                .duration_seconds
+                .unwrap_or(crate::handler::DEFAULT_DURATION_SECONDS),
             output_gcs_uri: params.output_gcs_uri,
             download_local: params.download_local.unwrap_or(false),
             local_path: params.local_path,
@@ -117,9 +129,15 @@ impl From<VideoFromImageToolParams> for VideoI2vParams {
             image: params.image,
             prompt: params.prompt,
             last_frame_image: params.last_frame_image,
-            model: params.model.unwrap_or_else(|| crate::handler::DEFAULT_MODEL.to_string()),
-            aspect_ratio: params.aspect_ratio.unwrap_or_else(|| crate::handler::DEFAULT_ASPECT_RATIO.to_string()),
-            duration_seconds: params.duration_seconds.unwrap_or(crate::handler::DEFAULT_DURATION_SECONDS),
+            model: params
+                .model
+                .unwrap_or_else(|| crate::handler::DEFAULT_MODEL.to_string()),
+            aspect_ratio: params
+                .aspect_ratio
+                .unwrap_or_else(|| crate::handler::DEFAULT_ASPECT_RATIO.to_string()),
+            duration_seconds: params
+                .duration_seconds
+                .unwrap_or(crate::handler::DEFAULT_DURATION_SECONDS),
             output_gcs_uri: params.output_gcs_uri,
             download_local: params.download_local.unwrap_or(false),
             local_path: params.local_path,
@@ -159,8 +177,12 @@ impl From<VideoExtendToolParams> for VideoExtendParams {
         Self {
             video_input: params.video_input,
             prompt: params.prompt,
-            model: params.model.unwrap_or_else(|| crate::handler::DEFAULT_MODEL.to_string()),
-            duration_seconds: params.duration_seconds.unwrap_or(crate::handler::DEFAULT_DURATION_SECONDS),
+            model: params
+                .model
+                .unwrap_or_else(|| crate::handler::DEFAULT_MODEL.to_string()),
+            duration_seconds: params
+                .duration_seconds
+                .unwrap_or(crate::handler::DEFAULT_DURATION_SECONDS),
             output_gcs_uri: params.output_gcs_uri,
             download_local: params.download_local.unwrap_or(false),
             local_path: params.local_path,
@@ -175,6 +197,7 @@ impl VideoServer {
         Self {
             handler: Arc::new(RwLock::new(None)),
             config,
+            tasks: TaskManager::new(),
         }
     }
 
@@ -188,7 +211,10 @@ impl VideoServer {
     }
 
     /// Generate video from a text prompt.
-    pub async fn generate_video(&self, params: VideoGenerateToolParams) -> Result<CallToolResult, McpError> {
+    pub async fn generate_video(
+        &self,
+        params: VideoGenerateToolParams,
+    ) -> Result<CallToolResult, McpError> {
         info!(prompt = %params.prompt, "Generating video (text-to-video)");
 
         // Ensure handler is initialized
@@ -197,9 +223,9 @@ impl VideoServer {
         })?;
 
         let handler_guard = self.handler.read().await;
-        let handler = handler_guard.as_ref().ok_or_else(|| {
-            McpError::internal_error("Handler not initialized", None)
-        })?;
+        let handler = handler_guard
+            .as_ref()
+            .ok_or_else(|| McpError::internal_error("Handler not initialized", None))?;
 
         let gen_params: VideoT2vParams = params.into();
         let result = handler.generate_video_t2v(gen_params).await.map_err(|e| {
@@ -212,7 +238,10 @@ impl VideoServer {
     }
 
     /// Generate video from an image.
-    pub async fn generate_video_from_image(&self, params: VideoFromImageToolParams) -> Result<CallToolResult, McpError> {
+    pub async fn generate_video_from_image(
+        &self,
+        params: VideoFromImageToolParams,
+    ) -> Result<CallToolResult, McpError> {
         info!(prompt = %params.prompt, "Generating video (image-to-video)");
 
         // Ensure handler is initialized
@@ -221,9 +250,9 @@ impl VideoServer {
         })?;
 
         let handler_guard = self.handler.read().await;
-        let handler = handler_guard.as_ref().ok_or_else(|| {
-            McpError::internal_error("Handler not initialized", None)
-        })?;
+        let handler = handler_guard
+            .as_ref()
+            .ok_or_else(|| McpError::internal_error("Handler not initialized", None))?;
 
         let gen_params: VideoI2vParams = params.into();
         let result = handler.generate_video_i2v(gen_params).await.map_err(|e| {
@@ -236,7 +265,10 @@ impl VideoServer {
     }
 
     /// Extend an existing video.
-    pub async fn extend_video(&self, params: VideoExtendToolParams) -> Result<CallToolResult, McpError> {
+    pub async fn extend_video(
+        &self,
+        params: VideoExtendToolParams,
+    ) -> Result<CallToolResult, McpError> {
         info!(prompt = %params.prompt, "Extending video");
 
         // Ensure handler is initialized
@@ -245,9 +277,9 @@ impl VideoServer {
         })?;
 
         let handler_guard = self.handler.read().await;
-        let handler = handler_guard.as_ref().ok_or_else(|| {
-            McpError::internal_error("Handler not initialized", None)
-        })?;
+        let handler = handler_guard
+            .as_ref()
+            .ok_or_else(|| McpError::internal_error("Handler not initialized", None))?;
 
         let extend_params: VideoExtendParams = params.into();
         let result = handler.extend_video(extend_params).await.map_err(|e| {
@@ -267,24 +299,76 @@ impl VideoServer {
         }
         vec![ContentBlock::text(message)]
     }
+
+    async fn execute_tool(
+        &self,
+        params: CallToolRequestParams,
+    ) -> Result<CallToolResult, McpError> {
+        match params.name.as_ref() {
+            "video_generate" => {
+                let tool_params: VideoGenerateToolParams = params
+                    .arguments
+                    .map(|args| serde_json::from_value(serde_json::Value::Object(args)))
+                    .transpose()
+                    .map_err(|e| {
+                        McpError::invalid_params(format!("Invalid parameters: {}", e), None)
+                    })?
+                    .ok_or_else(|| McpError::invalid_params("Missing parameters", None))?;
+                self.generate_video(tool_params).await
+            }
+            "video_from_image" => {
+                let tool_params: VideoFromImageToolParams = params
+                    .arguments
+                    .map(|args| serde_json::from_value(serde_json::Value::Object(args)))
+                    .transpose()
+                    .map_err(|e| {
+                        McpError::invalid_params(format!("Invalid parameters: {}", e), None)
+                    })?
+                    .ok_or_else(|| McpError::invalid_params("Missing parameters", None))?;
+                self.generate_video_from_image(tool_params).await
+            }
+            "video_extend" => {
+                let tool_params: VideoExtendToolParams = params
+                    .arguments
+                    .map(|args| serde_json::from_value(serde_json::Value::Object(args)))
+                    .transpose()
+                    .map_err(|e| {
+                        McpError::invalid_params(format!("Invalid parameters: {}", e), None)
+                    })?
+                    .ok_or_else(|| McpError::invalid_params("Missing parameters", None))?;
+                self.extend_video(tool_params).await
+            }
+            _ => Err(McpError::invalid_params(
+                format!("Unknown tool: {}", params.name),
+                None,
+            )),
+        }
+    }
 }
 
 impl ServerHandler for VideoServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().enable_resources().build())
-            .with_instructions(
-                "Video generation server using Google Vertex AI Veo API. \
+        ServerInfo::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .enable_tasks()
+                .build(),
+        )
+        .with_instructions(
+            "Video generation server using Google Vertex AI Veo API. \
                  Use video_generate for text-to-video, video_from_image for image-to-video, \
                  and video_extend to extend existing videos."
-                    .to_string(),
-            )
+                .to_string(),
+        )
     }
 
     fn list_tools(
         &self,
         _params: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<rmcp::model::ListToolsResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::ListToolsResult, McpError>> + Send + '_
+    {
         async move {
             use rmcp::model::{ListToolsResult, Tool};
             use schemars::schema_for;
@@ -314,74 +398,87 @@ impl ServerHandler for VideoServer {
             };
 
             Ok(ListToolsResult::with_all_items(vec![
-                    Tool::new(
-                        "video_generate",
-                        "Generate video from a text prompt using Google's Veo API. \
+                Tool::new(
+                    "video_generate",
+                    "Generate video from a text prompt using Google's Veo API. \
                              Requires a GCS URI for output. Returns the GCS URI of the generated video.",
-                        t2v_input_schema,
-                    ),
-                    Tool::new(
-                        "video_from_image",
-                        "Generate video from an image using Google's Veo API. \
+                    t2v_input_schema,
+                ),
+                Tool::new(
+                    "video_from_image",
+                    "Generate video from an image using Google's Veo API. \
                              Accepts base64 image data, local file path, or GCS URI as input. \
                              Supports interpolation mode: provide both `image` (first frame) and \
                              `last_frame_image` (last frame) to generate a video interpolating between them. \
                              Requires a GCS URI for output. Returns the GCS URI of the generated video.",
-                        i2v_input_schema,
-                    ),
-                    Tool::new(
-                        "video_extend",
-                        "Extend an existing video using Google's Veo API. \
+                    i2v_input_schema,
+                ),
+                Tool::new(
+                    "video_extend",
+                    "Extend an existing video using Google's Veo API. \
                              Takes a GCS URI of an existing video and generates additional frames \
                              based on the provided prompt. Requires a GCS URI for output. \
                              Returns the GCS URI of the extended video.",
-                        extend_input_schema,
-                    ),
-                ]))
+                    extend_input_schema,
+                ),
+                ])
+                .with_ttl_ms(3_600_000)
+                .with_cache_scope(CacheScope::Public))
         }
     }
 
     fn call_tool(
         &self,
         params: rmcp::model::CallToolRequestParams,
-        _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_ {
+        context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
+    ) -> impl std::future::Future<Output = Result<rmcp::model::CallToolResponse, McpError>> + Send + '_
+    {
         async move {
-            let result = match params.name.as_ref() {
-                "video_generate" => {
-                    let tool_params: VideoGenerateToolParams = params
-                        .arguments
-                        .map(|args| serde_json::from_value(serde_json::Value::Object(args)))
-                        .transpose()
-                        .map_err(|e| McpError::invalid_params(format!("Invalid parameters: {}", e), None))?
-                        .ok_or_else(|| McpError::invalid_params("Missing parameters", None))?;
-
-                    self.generate_video(tool_params).await
-                }
-                "video_from_image" => {
-                    let tool_params: VideoFromImageToolParams = params
-                        .arguments
-                        .map(|args| serde_json::from_value(serde_json::Value::Object(args)))
-                        .transpose()
-                        .map_err(|e| McpError::invalid_params(format!("Invalid parameters: {}", e), None))?
-                        .ok_or_else(|| McpError::invalid_params("Missing parameters", None))?;
-
-                    self.generate_video_from_image(tool_params).await
-                }
-                "video_extend" => {
-                    let tool_params: VideoExtendToolParams = params
-                        .arguments
-                        .map(|args| serde_json::from_value(serde_json::Value::Object(args)))
-                        .transpose()
-                        .map_err(|e| McpError::invalid_params(format!("Invalid parameters: {}", e), None))?
-                        .ok_or_else(|| McpError::invalid_params("Missing parameters", None))?;
-
-                    self.extend_video(tool_params).await
-                }
-                _ => Err(McpError::invalid_params(format!("Unknown tool: {}", params.name), None)),
-            };
-            result.map(Into::into)
+            if context
+                .client_capabilities()
+                .is_some_and(|caps| caps.supports_tasks())
+            {
+                let server = self.clone();
+                let task = self.tasks.spawn(
+                    TaskOptions::new().with_ttl_ms(60 * 60 * 1000).with_poll_interval_ms(1_000).with_status_message(format!("Generating media with {}", params.name)),
+                    move |task_context| Box::pin(async move {
+                        task_context.set_status_message("Waiting for the media provider");
+                        tokio::select! {
+                            _ = task_context.cancelled() => Err(TaskExit::Cancelled),
+                            result = server.execute_tool(params) => result.map_err(TaskExit::from),
+                        }
+                    }),
+                );
+                Ok(CallToolResponse::Task(CreateTaskResult::new(task)))
+            } else {
+                self.execute_tool(params).await.map(Into::into)
+            }
         }
+    }
+
+    async fn get_task(
+        &self,
+        request: GetTaskParams,
+        _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
+    ) -> Result<GetTaskResult, McpError> {
+        Ok(GetTaskResult::new(self.tasks.get_task(&request.task_id)?))
+    }
+
+    async fn update_task(
+        &self,
+        request: UpdateTaskParams,
+        _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
+    ) -> Result<(), McpError> {
+        self.tasks
+            .update_task(&request.task_id, request.input_responses)
+    }
+
+    async fn cancel_task(
+        &self,
+        request: CancelTaskParams,
+        _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
+    ) -> Result<(), McpError> {
+        self.tasks.cancel_task(&request.task_id)
     }
 
     fn list_resources(
@@ -391,22 +488,21 @@ impl ServerHandler for VideoServer {
     ) -> impl std::future::Future<Output = Result<ListResourcesResult, McpError>> + Send + '_ {
         async move {
             debug!("Listing resources");
-            
-            let models_resource = rmcp::model::Resource::new(
-                "video://models",
-                "Available Video Models",
-            )
-            .with_description("List of available video generation models")
-            .with_mime_type("application/json");
 
-            let providers_resource = rmcp::model::Resource::new(
-                "video://providers",
-                "Available Providers",
-            )
-            .with_description("List of available video generation providers")
-            .with_mime_type("application/json");
+            let models_resource =
+                rmcp::model::Resource::new("video://models", "Available Video Models")
+                    .with_description("List of available video generation models")
+                    .with_mime_type("application/json");
 
-            Ok(ListResourcesResult::with_all_items(vec![models_resource, providers_resource]))
+            let providers_resource =
+                rmcp::model::Resource::new("video://providers", "Available Providers")
+                    .with_description("List of available video generation providers")
+                    .with_mime_type("application/json");
+
+            Ok(ListResourcesResult::with_all_items(vec![
+                models_resource,
+                providers_resource,
+            ]))
         }
     }
 
@@ -414,7 +510,8 @@ impl ServerHandler for VideoServer {
         &self,
         params: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<rmcp::model::ReadResourceResponse, McpError>> + Send + '_
+    {
         async move {
             let uri = &params.uri;
             debug!(uri = %uri, "Reading resource");
@@ -445,7 +542,7 @@ mod tests {
             location: "us-central1".to_string(),
             gcs_bucket: None,
             port: 8080,
-        ..Default::default()
+            ..Default::default()
         }
     }
 
@@ -498,8 +595,14 @@ mod tests {
 
         let gen_params: VideoT2vParams = tool_params.into();
         assert_eq!(gen_params.model, crate::handler::DEFAULT_MODEL);
-        assert_eq!(gen_params.aspect_ratio, crate::handler::DEFAULT_ASPECT_RATIO);
-        assert_eq!(gen_params.duration_seconds, crate::handler::DEFAULT_DURATION_SECONDS);
+        assert_eq!(
+            gen_params.aspect_ratio,
+            crate::handler::DEFAULT_ASPECT_RATIO
+        );
+        assert_eq!(
+            gen_params.duration_seconds,
+            crate::handler::DEFAULT_DURATION_SECONDS
+        );
         assert!(!gen_params.download_local);
     }
 
@@ -543,8 +646,14 @@ mod tests {
 
         let gen_params: VideoI2vParams = tool_params.into();
         assert_eq!(gen_params.model, crate::handler::DEFAULT_MODEL);
-        assert_eq!(gen_params.aspect_ratio, crate::handler::DEFAULT_ASPECT_RATIO);
-        assert_eq!(gen_params.duration_seconds, crate::handler::DEFAULT_DURATION_SECONDS);
+        assert_eq!(
+            gen_params.aspect_ratio,
+            crate::handler::DEFAULT_ASPECT_RATIO
+        );
+        assert_eq!(
+            gen_params.duration_seconds,
+            crate::handler::DEFAULT_DURATION_SECONDS
+        );
         assert!(!gen_params.download_local);
     }
 }
