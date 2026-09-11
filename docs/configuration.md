@@ -136,6 +136,10 @@ Best for remote clients, web applications, and ADK agents:
 ```
 
 The MCP endpoint is available at `/mcp` (e.g., `http://localhost:8080/mcp`).
+It is a strict MCP 2026-07-28 stateless endpoint: no initialization handshake,
+no `Mcp-Session-Id`, and protocol/client metadata is supplied on every request.
+Set `ENABLE_LEGACY_MCP=1` only during migration to expose legacy stateful
+clients at the isolated `/mcp/legacy` endpoint.
 
 ### SSE (Server-Sent Events)
 

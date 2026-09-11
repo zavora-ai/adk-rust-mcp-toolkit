@@ -130,17 +130,31 @@ where
     /// Run the server with HTTP streamable transport.
     async fn run_http(self, port: u16) -> Result<(), ServerError> {
         use rmcp::transport::streamable_http_server::{
-            session::local::LocalSessionManager, StreamableHttpService,
+            StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
         };
 
         let handler = self.handler.clone();
         let service = StreamableHttpService::new(
             move || Ok(handler.clone()),
             LocalSessionManager::default().into(),
-            Default::default(),
+            StreamableHttpServerConfig::default()
+                .with_legacy_session_mode(false)
+                .with_stateless_protocol_metadata_required(true),
         );
 
-        let router = axum::Router::new().nest_service("/mcp", service);
+        let mut router = axum::Router::new().nest_service("/mcp", service);
+        if std::env::var("ENABLE_LEGACY_MCP")
+            .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        {
+            let handler = self.handler.clone();
+            let legacy_service = StreamableHttpService::new(
+                move || Ok(handler.clone()),
+                LocalSessionManager::default().into(),
+                StreamableHttpServerConfig::default(),
+            );
+            router = router.nest_service("/mcp/legacy", legacy_service);
+            tracing::warn!(port, "legacy MCP endpoint enabled at /mcp/legacy");
+        }
 
         let bind_addr = format!("0.0.0.0:{}", port);
         let tcp_listener = tokio::net::TcpListener::bind(&bind_addr)
@@ -175,8 +189,8 @@ where
     /// Note: SSE transport uses the same HTTP infrastructure as streamable HTTP
     /// but with Server-Sent Events for real-time streaming.
     async fn run_sse(self, port: u16) -> Result<(), ServerError> {
-        // SSE transport in rmcp 0.13 uses the same streamable HTTP server
-        // with SSE-based communication
+        // rmcp 3.1.2 carries SSE responses through the same strict streamable
+        // HTTP service and 2026-07-28 request metadata rules.
         self.run_http(port).await
     }
 }

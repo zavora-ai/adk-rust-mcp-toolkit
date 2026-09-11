@@ -1,8 +1,8 @@
 # ADK Rust MCP Toolkit
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
-[![MCP](https://img.shields.io/badge/MCP-v1.0-green.svg)](https://modelcontextprotocol.io/)
+[![Rust](https://img.shields.io/badge/rust-1.94.1%2B-orange.svg)](https://www.rust-lang.org/)
+[![MCP](https://img.shields.io/badge/MCP-2026--07--28-green.svg)](https://modelcontextprotocol.io/)
 
 Production-ready Model Context Protocol (MCP) servers for generative media, built in Rust. Generate images, videos, music, and speech through a unified, provider-agnostic interface.
 
@@ -166,7 +166,7 @@ Production-ready Model Context Protocol (MCP) servers for generative media, buil
 
 ### Prerequisites
 
-- Rust 1.88+ (2024 edition)
+- Rust 1.94.1+ (2024 edition)
 - Google Cloud project with Vertex AI enabled, **or** a Gemini API key
 - `gcloud` CLI authenticated (for Vertex AI)
 - FFmpeg (for avtool only)
@@ -210,6 +210,19 @@ adk-rust-mcp-image --transport http --port 8080
 # SSE — for streaming applications
 adk-rust-mcp-image --transport sse --port 8080
 ```
+
+HTTP and SSE expose a strict, session-free MCP 2026-07-28 endpoint at `/mcp`.
+Each request must carry protocol/client metadata; initialization and
+`Mcp-Session-Id` are not accepted there. For a time-bounded migration, set
+`ENABLE_LEGACY_MCP=1` to expose the old lifecycle separately at `/mcp/legacy`.
+
+The video server pilots SEP-2663 Tasks for every Veo generation/extension call
+when the client advertises the extension. It returns a task handle immediately,
+supports polling and cooperative cancellation, suggests a one-second poll
+interval, and retains completed results for one hour. Legacy clients keep the
+synchronous call shape. The current rmcp task store is process-local, so task
+polling survives reconnects to that process but not a server restart or a hop
+to another replica. Tool discovery responses carry a one-hour public cache TTL.
 
 ## Integration
 
@@ -379,4 +392,4 @@ Built with ❤️ by [Zavora AI](https://zavora.ai)
 
 ## rmcp and MCP compatibility
 
-This server is built with [`rmcp` 3.1.2](https://github.com/modelcontextprotocol/rust-sdk/releases/tag/rmcp-v3.1.2) and requires Rust 1.88 or newer. The rmcp 3 rollout retains legacy MCP initialization compatibility and targets MCP protocol revisions `2025-11-25` and `2026-07-28`.
+This server is built with [`rmcp` 3.1.2](https://github.com/modelcontextprotocol/rust-sdk/releases/tag/rmcp-v3.1.2) and requires Rust 1.94.1 or newer. The rmcp 3 rollout retains legacy MCP initialization compatibility and targets MCP protocol revisions `2025-11-25` and `2026-07-28`.

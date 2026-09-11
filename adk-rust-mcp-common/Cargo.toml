@@ -10,7 +10,7 @@ license = "Apache-2.0"
 repository = "https://github.com/zavora-ai/adk-rust-mcp-toolkit"
 keywords = ["mcp", "ai", "generative-media", "vertex-ai", "google-cloud"]
 categories = ["multimedia", "api-bindings", "development-tools"]
-rust-version = "1.88"
+rust-version = "1.94.1"
 homepage = "https://www.zavora.ai"
 
 [package.metadata.docs.rs]

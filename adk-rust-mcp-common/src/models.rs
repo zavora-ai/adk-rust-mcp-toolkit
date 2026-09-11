@@ -63,7 +63,6 @@ pub struct LyriaModel {
     pub max_samples: u8,
 }
 
-
 // =============================================================================
 // Static Model Definitions
 // =============================================================================
@@ -152,7 +151,13 @@ pub const VEO_3_1_LITE_GENERATE_PREVIEW: VeoModel = VeoModel {
 };
 
 /// All available Veo models
-pub const VEO_MODELS: &[VeoModel] = &[VEO_2_0_GENERATE_001, VEO_3_0_GENERATE_PREVIEW, VEO_3_1_GENERATE_PREVIEW, VEO_3_1_FAST_GENERATE_PREVIEW, VEO_3_1_LITE_GENERATE_PREVIEW];
+pub const VEO_MODELS: &[VeoModel] = &[
+    VEO_2_0_GENERATE_001,
+    VEO_3_0_GENERATE_PREVIEW,
+    VEO_3_1_GENERATE_PREVIEW,
+    VEO_3_1_FAST_GENERATE_PREVIEW,
+    VEO_3_1_LITE_GENERATE_PREVIEW,
+];
 
 // =============================================================================
 // Gemini Model Definitions
@@ -216,9 +221,13 @@ pub const GEMINI_3_1_FLASH_TTS_PREVIEW: GeminiModel = GeminiModel {
 
 /// All available Gemini models
 pub const GEMINI_MODELS: &[GeminiModel] = &[
-    GEMINI_2_0_FLASH, GEMINI_2_0_FLASH_LITE, GEMINI_2_5_FLASH_IMAGE,
-    GEMINI_3_1_FLASH_IMAGE_PREVIEW, GEMINI_3_PRO_IMAGE_PREVIEW,
-    GEMINI_2_5_FLASH_PREVIEW_TTS, GEMINI_3_1_FLASH_TTS_PREVIEW,
+    GEMINI_2_0_FLASH,
+    GEMINI_2_0_FLASH_LITE,
+    GEMINI_2_5_FLASH_IMAGE,
+    GEMINI_3_1_FLASH_IMAGE_PREVIEW,
+    GEMINI_3_PRO_IMAGE_PREVIEW,
+    GEMINI_2_5_FLASH_PREVIEW_TTS,
+    GEMINI_3_1_FLASH_TTS_PREVIEW,
 ];
 
 // =============================================================================
@@ -248,7 +257,6 @@ pub const LYRIA_3_CLIP_PREVIEW: LyriaModel = LyriaModel {
 
 /// All available Lyria models
 pub const LYRIA_MODELS: &[LyriaModel] = &[LYRIA_1_0, LYRIA_3_PRO_PREVIEW, LYRIA_3_CLIP_PREVIEW];
-
 
 // =============================================================================
 // Model Registry
@@ -414,7 +422,6 @@ impl ModelRegistry {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -502,13 +509,13 @@ mod tests {
     #[test]
     fn test_list_veo_models() {
         let models = ModelRegistry::list_veo_models();
-        assert_eq!(models.len(), 2);
+        assert_eq!(models.len(), 5);
     }
 
     #[test]
     fn test_list_gemini_models() {
         let models = ModelRegistry::list_gemini_models();
-        assert_eq!(models.len(), 2);
+        assert_eq!(models.len(), 7);
     }
 
     #[test]
@@ -537,7 +544,7 @@ mod tests {
     #[test]
     fn test_list_lyria_models() {
         let models = ModelRegistry::list_lyria_models();
-        assert_eq!(models.len(), 1);
+        assert_eq!(models.len(), 3);
     }
 
     #[test]
@@ -557,7 +564,6 @@ mod tests {
         assert!(!model.supported_durations.contains(&5)); // 5 is not supported
     }
 }
-
 
 #[cfg(test)]
 mod property_tests {

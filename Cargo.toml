@@ -30,7 +30,7 @@ authors = ["James Karanja Maina"]
 homepage = "https://www.zavora.ai"
 license = "Apache-2.0"
 repository = "https://github.com/zavora-ai/adk-rust-mcp-toolkit"
-rust-version = "1.88"
+rust-version = "1.94.1"
 keywords = ["mcp", "ai", "generative-media", "vertex-ai", "google-cloud"]
 categories = ["multimedia", "api-bindings", "development-tools"]
 
